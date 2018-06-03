@@ -8,16 +8,16 @@ echo ETCD_URL = $ETCD_URL
 
 if [[ "$1" == "consumer" ]]; then
   echo "Starting consumer agent..."
-  pypy /root/dists/main.py --port=20000
+  nohup pypy /root/dists/main.py --port=20000 > /root/logs/consumer.log 2>&1 &
 elif [[ "$1" == "provider-small" ]]; then
   echo "Starting small provider agent..."
-  pypy /root/dists/pa.py --port=30000
+  nohup pypy /root/dists/pa.py --port=30000 > /root/logs/p-s.log 2>&1 &
 elif [[ "$1" == "provider-medium" ]]; then
   echo "Starting medium provider agent..."
-  pypy /root/dists/pa.py --port=30000
+  nohup pypy /root/dists/pa.py --port=30000 > /root/logs/p-m.log 2>&1 &
 elif [[ "$1" == "provider-large" ]]; then
   echo "Starting large provider agent..."
-  pypy /root/dists/pa.py --port=30000
+  nohup pypy /root/dists/pa.py --port=30000 > /root/logs/p-l.log 2>&1 &
 else
   echo "Unrecognized arguments, exit."
   exit 1
