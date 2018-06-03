@@ -40,7 +40,7 @@ if __name__ == '__main__':
     server = tornado.httpserver.HTTPServer(Application())
 #     sockets = tornado.netutil.bind_sockets(options.port)
 #     server.add_sockets(sockets)
-    server.bind(options.port)
+    server.bind(options.port, backlog=2048)
     server.start(0)
     tornado.ioloop.IOLoop.current().start()
 #     tornado.ioloop.IOLoop.instance().start()
