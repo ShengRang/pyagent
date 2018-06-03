@@ -9,7 +9,7 @@ WORKDIR /root/workspace/agent
 # Runner container
 FROM pypy:2
 
-RUN pypy -m pip install -r requirements.txt
+RUN pypy -m pip install tornado
 
 COPY --from=builder /root/workspace/services/mesh-provider/target/mesh-provider-1.0-SNAPSHOT.jar /root/dists/mesh-provider.jar
 COPY --from=builder /root/workspace/services/mesh-consumer/target/mesh-consumer-1.0-SNAPSHOT.jar /root/dists/mesh-consumer.jar
