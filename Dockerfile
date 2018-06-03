@@ -9,6 +9,8 @@ WORKDIR /root/dists
 # Runner container
 FROM pypy:2
 
+RUN apt-get update && apt-get install openjdk-8-jdk
+
 RUN pypy -m pip install tornado
 
 COPY --from=builder /root/workspace/services/mesh-provider/target/mesh-provider-1.0-SNAPSHOT.jar /root/dists/mesh-provider.jar
