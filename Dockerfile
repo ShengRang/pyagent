@@ -17,6 +17,8 @@ COPY --from=builder /root/dists/main.py /root/dists/main.py
 COPY --from=builder /root/dists/pa.py /root/dists/pa.py
 
 COPY --from=builder /usr/local/bin/docker-entrypoint.sh /usr/local/bin
+COPY --from=builder /root/dists/docker-entrypoint.sh /usr/local/bin
+
 COPY start-agent.sh /usr/local/bin
 
 RUN set -ex \
