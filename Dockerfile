@@ -1,8 +1,8 @@
 # Builder container
 FROM registry.cn-hangzhou.aliyuncs.com/aliware2018/services AS builder
 
-COPY . /root/workspace/agent
-WORKDIR /root/workspace/agent
+COPY . /root/dists
+WORKDIR /root/dists
 #RUN set -ex && mvn clean package
 
 
