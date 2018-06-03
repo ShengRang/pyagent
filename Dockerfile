@@ -13,6 +13,8 @@ RUN pypy -m pip install tornado
 
 COPY --from=builder /root/workspace/services/mesh-provider/target/mesh-provider-1.0-SNAPSHOT.jar /root/dists/mesh-provider.jar
 COPY --from=builder /root/workspace/services/mesh-consumer/target/mesh-consumer-1.0-SNAPSHOT.jar /root/dists/mesh-consumer.jar
+COPY --from=builder /root/dists/main.py /root/dists/main.py
+COPY --from=builder /root/dists/pa.py /root/dists/pa.py
 
 COPY --from=builder /usr/local/bin/docker-entrypoint.sh /usr/local/bin
 COPY start-agent.sh /usr/local/bin
