@@ -19,7 +19,7 @@ Resolver.configure('tornado.netutil.ThreadedResolver')
 
 class DubboClient(object):
 
-    def __init__(self,  host, port, io_loop=None):
+    def __init__(self, host, port, io_loop=None):
         self.io_loop = io_loop or IOLoop.current()
         self.callbacks = {}
         self.queue = deque()

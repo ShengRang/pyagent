@@ -14,8 +14,9 @@ from tornado import gen
 from tornado.tcpserver import TCPServer
 from tornado.iostream import StreamClosedError
 from tornado.log import gen_log
+import etcd
 
-from utils import bytes2int
+from utils import bytes2int, get_ip
 from act import ActRequest, ActResponse
 from dubbo_client import DubboClient
 from dubbo import Request as DubboRequest
@@ -32,6 +33,8 @@ class PAServer(TCPServer):
 
     def __init__(self):
         super(PAServer, self).__init__()
+        client = etcd.Client()
+        client.write('/dubbomesh/com.some.package.IHelloService/{0}:{1}'.format(get_ip(), 30000), '')
         self.dubbo_channel_map = {}
 
     @gen.coroutine

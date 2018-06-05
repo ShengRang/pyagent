@@ -17,6 +17,16 @@ class ActRequest(object):
         self.Id = 0
         self.parameter = ''
 
+    def encode_header(self):
+        ds = []
+        ds.append(int2bytes(len(self.interface)))
+        ds.append(self.interface)
+        ds.append(int2bytes(len(self.method)))
+        ds.append(self.method)
+        ds.append(int2bytes(len(self.parameter_types_string)))
+        ds.append(self.parameter_types_string)
+        return ''.join(ds)
+
     def encode_body(self):
         ds = []
         ds.append(int2bytes(self.Id))
