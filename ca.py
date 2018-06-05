@@ -39,7 +39,7 @@ class EndPoints(object):
             gen_log.info('get endpoint: {0}, {1}, {2}'.format(s[0], s[1], e.value))
             end_points.append((s[0], int(s[1]), int(e.value)))
         self.end_points = sorted(end_points, key=lambda pair: -pair[2])
-        rate = map(lambda u: u[2], end_points)
+        rate = map(lambda u: u[2], self.end_points)
         for i, v in enumerate(rate):
             if i > 0:
                 rate[i] = rate[i-1] + rate[i]
