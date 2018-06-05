@@ -3,6 +3,8 @@
 
 import logging
 import logging.config
+import random
+import os
 
 import tornado
 import tornado.web
@@ -71,7 +73,8 @@ class PAServer(TCPServer):
 
         def make_dubbo_request(act_request):
             dr = DubboRequest()
-            dr.Id = act_request.Id
+            # dr.Id = act_request.Id
+            dr.Id = random.randint(1, 2100000000)
             dr.interface_name = act_request.interface
             dr.method_name = act_request.method
             # dr.dubbo_version = ''
@@ -141,5 +144,6 @@ if __name__ == '__main__':
 #     server.add_sockets(sockets)
     server.bind(options.port, backlog=2048)
     server.start(0)
+    random.seed(os.getpid())
     tornado.ioloop.IOLoop.current().start()
 #     tornado.ioloop.IOLoop.instance().start()
