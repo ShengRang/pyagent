@@ -40,15 +40,15 @@ class PAServer(TCPServer):
     @gen.coroutine
     def handle_stream(self, stream, address):
         magic_number = yield stream.read_bytes(2)
-        gen_log.info('receive magic number success')
+        # gen_log.info('receive magic number success')
         if magic_number != '\xab\xcd':
             return
         interface_len = yield stream.read_bytes(4)
-        gen_log.info('get interface len: {0}'.format(repr(interface_len)))
+        # gen_log.info('get interface len: {0}'.format(repr(interface_len)))
         interface_len = bytes2int(interface_len)
-        gen_log.info('interface len: %d', interface_len)
+        # gen_log.info('interface len: %d', interface_len)
         interface = yield stream.read_bytes(interface_len)
-        gen_log.info('get interface: [%s]', interface)
+        # gen_log.info('get interface: [%s]', interface)
         method_len = yield stream.read_bytes(4)
         method_len = bytes2int(method_len)
         method = yield stream.read_bytes(method_len)
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     server = PAServer(port=options.port, weight=options.weight, etcd_host=options.etcd)
 #     sockets = tornado.netutil.bind_sockets(options.port)
 #     server.add_sockets(sockets)
-    server.bind(options.port)
+    server.bind(options.port, backlog=2048)
     server.start(0)
     tornado.ioloop.IOLoop.current().start()
 #     tornado.ioloop.IOLoop.instance().start()

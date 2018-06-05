@@ -32,6 +32,7 @@ class EndPoints(object):
         # end_points = [tuple(e.key[42:].split(':')) + (int(e.value),) for e in eclient.read('/dubbomesh/com.some.package.IHelloService').children]
         for e in eclient.read('/dubbomesh/com.some.package.IHelloService').children:
             s = e.key[42:].split(':')
+            print 'get endpoint: ', s[0], s[1]
             end_points.append((s[0], int(s[1]), int(e.value)))
         self.end_points = sorted(end_points, key=lambda pair: -pair[2])
 
@@ -46,6 +47,10 @@ class IndexHandler(tornado.web.RequestHandler):
 
     @asynchronous
     def post(self):
+        # parameter = self.get_argument('parameter').encode('utf-8')
+        # self.write(str(java_string_hashcode(parameter)))
+        # self.finish()
+        # return
         host, port = end_points.choice()
         if host in IndexHandler.pa_client_map:
             client = IndexHandler.pa_client_map[host]
@@ -53,7 +58,7 @@ class IndexHandler(tornado.web.RequestHandler):
             client = PAClient(host, port)
             IndexHandler.pa_client_map[host] = client
         request = ActRequest()
-        print 'alloc: ', IndexHandler.alloc
+        # print 'alloc: ', IndexHandler.alloc
         request.Id = IndexHandler.alloc
         IndexHandler.alloc += 1
         request.interface = self.get_argument('interface').encode('utf-8')
@@ -61,10 +66,9 @@ class IndexHandler(tornado.web.RequestHandler):
         request.parameter_types_string = self.get_argument('parameterTypesString').encode('utf-8')
         request.parameter = self.get_argument('parameter').encode('utf-8')
         client.fetch(request, self._callback)
-        # self.write(str(java_string_hashcode(parameter)))
 
     def _callback(self, act_response):
-        print 'get act resp', act_response.Id, act_response.result
+        # print 'get act resp', act_response.Id, act_response.result
         self.write(act_response.result.split()[1])
         self.finish()
 
