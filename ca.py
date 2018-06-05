@@ -4,6 +4,7 @@
 import random
 import bisect
 import logging
+import os
 import logging.config
 
 import tornado
@@ -47,10 +48,14 @@ class EndPoints(object):
         self.rate = rate
         self.prev = 0
         self.max_sum = self.rate[-1]
+        self.cnt_map = [0 for _ in self.rate]
 
     def choice(self):
         # return random.choice(self.end_points)[:2]
-        res = self.end_points[bisect.bisect_left(self.rate, self.prev+1)][:2]
+        idx = bisect.bisect_left(self.rate, self.prev+1)
+        self.cnt_map[idx] += 1
+        gen_log.info("cnt_map: {0}".format(self.cnt_map))
+        res = self.end_points[idx][:2]
         self.prev = (self.prev + 1) % self.max_sum
         return res
 
@@ -77,7 +82,8 @@ class IndexHandler(tornado.web.RequestHandler):
             IndexHandler.pa_client_map[host] = client
         request = ActRequest()
         # print 'alloc: ', IndexHandler.alloc
-        request.Id = IndexHandler.alloc
+        # request.Id = IndexHandler.alloc
+        request.Id = random.randint(1, 2100000000)
         IndexHandler.alloc += 1
         request.interface = self.get_argument('interface').encode('utf-8')
         request.method = self.get_argument('method').encode('utf-8')
@@ -125,6 +131,7 @@ if __name__ == '__main__':
 #     sockets = tornado.netutil.bind_sockets(options.port)
 #     server.add_sockets(sockets)
     server.bind(options.port, backlog=2048)
-    server.start(1)
+    server.start(0)
+    random.seed(os.getpid())
     tornado.ioloop.IOLoop.current().start()
 #     tornado.ioloop.IOLoop.instance().start()

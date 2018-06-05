@@ -37,6 +37,7 @@ class PAServer(TCPServer):
         super(PAServer, self).__init__()
         client = etcd.Client(host=etcd_host, port=2379)
         client.write('/dubbomesh/com.some.package.IHelloService/{0}:{1}'.format(get_ip(), port), weight)
+        gen_log.info('register with {0}:{1} [{2}]'.format(get_ip(), port, weight))
         self.dubbo_channel_map = {}
 
     @gen.coroutine
@@ -94,10 +95,10 @@ class PAServer(TCPServer):
                 request = make_request(bytes2int(Id))
                 p_len = yield stream.read_bytes(4)
                 request.parameter = yield stream.read_bytes(bytes2int(p_len))
-                gen_log.info("get request %d %s", request.Id, request.parameter)
+                # gen_log.info("get request %d %s", request.Id, request.parameter)
 
                 def callback(dubbo_response):
-                    gen_log.info("get dubbo_resp %d [%s] \nstream write act resp", dubbo_response.Id, dubbo_response.result)
+                    # gen_log.info("get dubbo_resp %d [%s] \nstream write act resp", dubbo_response.Id, dubbo_response.result)
                     stream.write(make_act_response(dubbo_response).encode_body())
 
                 dubbo_client.fetch(make_dubbo_request(request), callback=callback)
@@ -143,7 +144,7 @@ if __name__ == '__main__':
 #     sockets = tornado.netutil.bind_sockets(options.port)
 #     server.add_sockets(sockets)
     server.bind(options.port, backlog=2048)
-    server.start(1)
+    server.start(0)
     random.seed(os.getpid())
     tornado.ioloop.IOLoop.current().start()
 #     tornado.ioloop.IOLoop.instance().start()
