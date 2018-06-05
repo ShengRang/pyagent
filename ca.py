@@ -47,14 +47,15 @@ class IndexHandler(tornado.web.RequestHandler):
     @asynchronous
     def post(self):
         host, port = end_points.choice()
-        if host in self.pa_client_map:
-            client = self.pa_client_map[host]
+        if host in IndexHandler.pa_client_map:
+            client = IndexHandler.pa_client_map[host]
         else:
             client = PAClient(host, port)
-            self.pa_client_map[host] = client
+            IndexHandler.pa_client_map[host] = client
         request = ActRequest()
-        request.Id = self.alloc
-        self.alloc += 1
+        print 'alloc: ', IndexHandler.alloc
+        request.Id = IndexHandler.alloc
+        IndexHandler.alloc += 1
         request.interface = self.get_argument('interface').encode('utf-8')
         request.method = self.get_argument('method').encode('utf-8')
         request.parameter_types_string = self.get_argument('parameterTypesString').encode('utf-8')
