@@ -48,7 +48,7 @@ class DubboConnection(object):
 
     def _on_resolve(self, addrinfo):
         af = addrinfo[0][0]
-        self.stream = IOStream(socket.socket(af), io_loop=self.io_loop)
+        self.stream = IOStream(socket.socket(af))
         self.stream.set_close_callback(self._on_close)
         sockaddr = addrinfo[0][1]
         gen_log.info("sock addr {0}".format(sockaddr))

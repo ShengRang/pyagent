@@ -26,7 +26,7 @@ class PAClient(object):
 
     def fetch(self, act_request, callback):
         key = (act_request.interface, act_request.method, act_request.parameter_types_string)
-        print key, type(key)
+        # print key, type(key)
         if key in self.conns:
             conn = self.conns[key]
         else:
@@ -66,7 +66,7 @@ class PAConnection(object):
 
     def _on_resolve(self, addrinfo):
         af = addrinfo[0][0]
-        self.stream = IOStream(socket.socket(af), io_loop=self.io_loop)
+        self.stream = IOStream(socket.socket(af))
         self.stream.set_close_callback(self._on_close)
         sockaddr = addrinfo[0][1]
         gen_log.info("sock addr {0}".format(sockaddr))
