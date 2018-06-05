@@ -45,7 +45,6 @@ COPY --from=builder /root/workspace/services/mesh-consumer/target/mesh-consumer-
 COPY --from=builder /root/dists/*.py /root/dists/
 
 COPY --from=builder /usr/local/bin/docker-entrypoint.sh /usr/local/bin
-COPY --from=builder /root/dists/docker-entrypoint.sh /usr/local/bin
 
 COPY start-agent.sh /usr/local/bin
 
