@@ -37,8 +37,8 @@ RUN set -ex \
  && rm -rf ${JAVA_HOME}/jar/lib/security/README.txt \
        /var/lib/apt/lists/* \
        /tmp/*
-
-RUN pypy -m pip install tornado -i https://pypi.tuna.tsinghua.edu.cn/simple
+COPY --from=builder /root/dists/requirements.txt ./
+RUN pypy -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 COPY --from=builder /root/workspace/services/mesh-provider/target/mesh-provider-1.0-SNAPSHOT.jar /root/dists/mesh-provider.jar
 COPY --from=builder /root/workspace/services/mesh-consumer/target/mesh-consumer-1.0-SNAPSHOT.jar /root/dists/mesh-consumer.jar
