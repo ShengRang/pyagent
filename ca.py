@@ -3,6 +3,8 @@
 
 import random
 import bisect
+import logging
+import logging.config
 
 import tornado
 import tornado.web
@@ -11,6 +13,7 @@ import tornado.ioloop
 import tornado.options
 from tornado.options import define, options
 from tornado.web import asynchronous
+from tornado.log import gen_log
 from tornado import gen
 import etcd
 
@@ -33,13 +36,14 @@ class EndPoints(object):
         # end_points = [tuple(e.key[42:].split(':')) + (int(e.value),) for e in eclient.read('/dubbomesh/com.some.package.IHelloService').children]
         for e in eclient.read('/dubbomesh/com.some.package.IHelloService').children:
             s = e.key[42:].split(':')
-            print 'get endpoint: ', s[0], s[1]
+            gen_log.info('get endpoint: {0}, {1}, {2}'.format(s[0], s[1], e.value))
             end_points.append((s[0], int(s[1]), int(e.value)))
         self.end_points = sorted(end_points, key=lambda pair: -pair[2])
         rate = map(lambda u: u[2], end_points)
         for i, v in enumerate(rate):
             if i > 0:
                 rate[i] = rate[i-1] + rate[i]
+        gen_log.info('the rate: {0}'.format(rate))
         self.rate = rate
         self.prev = 0
         self.max_sum = self.rate[-1]
@@ -63,10 +67,12 @@ class IndexHandler(tornado.web.RequestHandler):
         # self.finish()
         # return
         host, port = end_points.choice()
+        gen_log.info('chose {0}:{1}'.format(host, port))
         if host in IndexHandler.pa_client_map:
             client = IndexHandler.pa_client_map[host]
         else:
             print host, port, 'not in the pa_client_map'
+            gen_log.info('{0}:{1} not in pa_client_map'.format(host, port))
             client = PAClient(host, port)
             IndexHandler.pa_client_map[host] = client
         request = ActRequest()
@@ -94,6 +100,23 @@ class Application(tornado.web.Application):
         tornado.web.Application.__init__(self, handlers, **settings)
 
 if __name__ == '__main__':
+    logging_config = dict(
+        version=1,
+        formatters={
+            'f': {'format':
+                      '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'}
+        },
+        handlers={
+            'h': {'class': 'logging.StreamHandler',
+                  'formatter': 'f',
+                  'level': logging.DEBUG}
+        },
+        loggers={
+            'tornado.general': {'handlers': ['h'],
+                                'level': logging.DEBUG}
+        }
+    )
+    logging.config.dictConfig(logging_config)
     define("port", default=20000, help="run on the given port", type=int)
     define("etcd", default="localhost", help="etcd hostname", type=str)
     tornado.options.parse_command_line()
