@@ -27,7 +27,7 @@ def java_string_hashcode(s):
 class EndPoints(object):
 
     def __init__(self):
-        eclient = etcd.Client(port=2379)
+        eclient = etcd.Client(host=options.etcd, port=2379)
         end_points = []
         # end_points = [tuple(e.key[42:].split(':')) + (int(e.value),) for e in eclient.read('/dubbomesh/com.some.package.IHelloService').children]
         for e in eclient.read('/dubbomesh/com.some.package.IHelloService').children:
@@ -37,8 +37,6 @@ class EndPoints(object):
 
     def choice(self):
         return random.choice(self.end_points)[:2]
-
-end_points = EndPoints()
 
 
 class IndexHandler(tornado.web.RequestHandler):
@@ -65,7 +63,7 @@ class IndexHandler(tornado.web.RequestHandler):
         # self.write(str(java_string_hashcode(parameter)))
 
     def _callback(self, act_response):
-        # print 'get act resp', act_response.Id, act_response.result
+        print 'get act resp', act_response.Id, act_response.result
         self.write(act_response.result.split()[1])
         self.finish()
 
@@ -80,7 +78,9 @@ class Application(tornado.web.Application):
 
 if __name__ == '__main__':
     define("port", default=20000, help="run on the given port", type=int)
+    define("etcd", default="localhost", help="etcd hostname", type=str)
     tornado.options.parse_command_line()
+    end_points = EndPoints()
     server = tornado.httpserver.HTTPServer(Application())
 #     sockets = tornado.netutil.bind_sockets(options.port)
 #     server.add_sockets(sockets)

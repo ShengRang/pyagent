@@ -31,9 +31,9 @@ def java_string_hashcode(s):
 
 class PAServer(TCPServer):
 
-    def __init__(self, port=30000, weight=1):
+    def __init__(self, port=30000, weight=1, etcd_host="localhost"):
         super(PAServer, self).__init__()
-        client = etcd.Client(port=2379)
+        client = etcd.Client(host=etcd_host, port=2379)
         client.write('/dubbomesh/com.some.package.IHelloService/{0}:{1}'.format(get_ip(), port), weight)
         self.dubbo_channel_map = {}
 
@@ -134,8 +134,9 @@ if __name__ == '__main__':
     logging.config.dictConfig(logging_config)
     define("port", default=30000, help="run on the given port", type=int)
     define("weight", default=1, help="weight", type=int)
+    define("etcd", default="localhost", help="etcd hostname", type=str)
     tornado.options.parse_command_line()
-    server = PAServer(port=options.port, weight=options.weight)
+    server = PAServer(port=options.port, weight=options.weight, etcd_host=options.etcd)
 #     sockets = tornado.netutil.bind_sockets(options.port)
 #     server.add_sockets(sockets)
     server.bind(options.port)
