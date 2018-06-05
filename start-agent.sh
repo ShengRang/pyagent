@@ -8,7 +8,7 @@ echo ETCD_URL = $ETCD_URL
 
 if [[ "$1" == "consumer" ]]; then
   echo "Starting consumer agent..."
-  pypy /root/dists/main.py --port=20000 > /dev/null
+  pypy /root/dists/ca.py --port=20000 > /dev/null
 elif [[ "$1" == "provider-small" ]]; then
   echo "Starting small provider agent..."
   pypy /root/dists/pa.py --port=30000 > /dev/null
