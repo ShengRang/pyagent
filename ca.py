@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 import random
+import bisect
 
 import tornado
 import tornado.web
@@ -35,9 +36,19 @@ class EndPoints(object):
             print 'get endpoint: ', s[0], s[1]
             end_points.append((s[0], int(s[1]), int(e.value)))
         self.end_points = sorted(end_points, key=lambda pair: -pair[2])
+        rate = map(lambda u: u[2], end_points)
+        for i, v in enumerate(rate):
+            if i > 0:
+                rate[i] = rate[i-1] + rate[i]
+        self.rate = rate
+        self.prev = 0
+        self.max_sum = self.rate[-1]
 
     def choice(self):
-        return random.choice(self.end_points)[:2]
+        # return random.choice(self.end_points)[:2]
+        res = self.end_points[bisect.bisect_left(self.rate, self.prev+1)][:2]
+        self.prev = (self.prev + 1) % self.max_sum
+        return res
 
 
 class IndexHandler(tornado.web.RequestHandler):
@@ -55,6 +66,7 @@ class IndexHandler(tornado.web.RequestHandler):
         if host in IndexHandler.pa_client_map:
             client = IndexHandler.pa_client_map[host]
         else:
+            print host, port, 'not in the pa_client_map'
             client = PAClient(host, port)
             IndexHandler.pa_client_map[host] = client
         request = ActRequest()
