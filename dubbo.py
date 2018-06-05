@@ -31,7 +31,7 @@ class Request(object):
         bs.append(b'{0}\n'.format('{"path":"com.alibaba.dubbo.performance.demo.provider.IHelloService"}'))
         tlen = sum(map(len, bs))
         bs[2] = struct.pack('>I', tlen-16)
-        print repr(''.join(bs))
+        # print repr(''.join(bs))
         return ''.join(bs)
 
 
@@ -40,6 +40,15 @@ class Response(object):
     def __init__(self):
         self.Id = 0
         self.result = b''           # '1\n895942618\n'
+        self.data_len = 0
+
+    def decode_header(self, bts):
+        if bts[0] == '\xda' and bts[1] == '\xbb':
+            self.Id = struct.unpack('>Q', bts[4:12])[0]
+            self.data_len = struct.unpack('>I', bts[12:16])[0]
+
+    def decode_body(self, bts):
+        self.result = bts
 
     def decode(self, bts):
         if bts[0] == '\xda' and bts[1] == '\xbb':
