@@ -26,6 +26,7 @@ class PAClient(object):
 
     def fetch(self, act_request, callback):
         key = (act_request.interface, act_request.method, act_request.parameter_types_string)
+        print key, type(key)
         if key in self.conns:
             conn = self.conns[key]
         else:
