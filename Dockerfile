@@ -42,8 +42,7 @@ RUN pypy -m pip install tornado -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 COPY --from=builder /root/workspace/services/mesh-provider/target/mesh-provider-1.0-SNAPSHOT.jar /root/dists/mesh-provider.jar
 COPY --from=builder /root/workspace/services/mesh-consumer/target/mesh-consumer-1.0-SNAPSHOT.jar /root/dists/mesh-consumer.jar
-COPY --from=builder /root/dists/ca.py /root/dists/ca.py
-COPY --from=builder /root/dists/pa.py /root/dists/pa.py
+COPY --from=builder /root/dists/*.py /root/dists/
 
 COPY --from=builder /usr/local/bin/docker-entrypoint.sh /usr/local/bin
 COPY --from=builder /root/dists/docker-entrypoint.sh /usr/local/bin
