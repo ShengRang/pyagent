@@ -2,6 +2,8 @@
 
 import socket
 from collections import deque
+import logging
+import logging.config
 
 from tornado.iostream import IOStream
 from tornado.ioloop import IOLoop
@@ -27,6 +29,7 @@ class PAClient(object):
         if key in self.conns:
             conn = self.conns[key]
         else:
+            gen_log.info("key {0} not in client, create one".format(key))
             conn = PAConnection(self.host, self.port, self.io_loop, key)
             self.conns[key] = conn
         conn.fetch(act_request, callback)
@@ -54,6 +57,11 @@ class PAConnection(object):
         self.key = key
         self.stream = None
         self.pepv_act_resp = None
+        with stack_context.ExceptionStackContext(self._handle_exception):
+            self.resolver.resolve(host, port, socket.AF_INET, callback=self._on_resolve)
+
+    def _handle_exception(self, typ, value, tb):
+        gen_log.exception("pa connection error [%s] [%s] %s", typ, value, tb)
 
     def _on_resolve(self, addrinfo):
         af = addrinfo[0][0]
@@ -69,7 +77,10 @@ class PAConnection(object):
     def _on_connect(self):
         gen_log.info("start conn to pa")
         self._connected = True
+        self.stream.write('\xab\xcd')               # magic number of act protocol
+        gen_log.info('write data {0}'.format(repr(encode_act_key(self.key))))
         self.stream.write(encode_act_key(self.key))
+        self._process_queue()
         self.stream.read_bytes(4, self._on_id)
 
     def _on_id(self, data):
@@ -104,3 +115,36 @@ class PAConnection(object):
             while self.queue:
                 act_request = self.queue.popleft()
                 self.stream.write(act_request.encode_body())
+
+
+if __name__ == "__main__":
+    logging_config = dict(
+        version=1,
+        formatters={
+            'f': {'format':
+                      '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'}
+        },
+        handlers={
+            'h': {'class': 'logging.StreamHandler',
+                  'formatter': 'f',
+                  'level': logging.DEBUG}
+        },
+        loggers={
+            'tornado.general': {'handlers': ['h'],
+                                'level': logging.DEBUG}
+        }
+    )
+    logging.config.dictConfig(logging_config)
+    client = PAClient('localhost', 30000)
+    req = ActRequest()
+    req.Id = 1
+    req.interface = 'com.alibaba.dubbo.performance.demo.provider.IHelloService'
+    req.method = 'hash'
+    req.parameter_types_string = 'Ljava/lang/String;'
+    req.parameter = 'test'
+
+    def callback(act_response):
+        print 'get act response Id: {0} res: [{1}]'.format(act_response.Id, act_response.result)
+
+    client.fetch(req, callback)
+    IOLoop.current().start()

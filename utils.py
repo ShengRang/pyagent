@@ -5,7 +5,7 @@ import socket
 
 
 def bytes2int(b):
-    return struct.unpack('>I', b)
+    return struct.unpack('>I', b)[0]
 
 
 def int2bytes(i):

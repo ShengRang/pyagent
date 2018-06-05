@@ -33,18 +33,22 @@ class PAServer(TCPServer):
 
     def __init__(self):
         super(PAServer, self).__init__()
-        client = etcd.Client()
+        client = etcd.Client(port=2379)
         client.write('/dubbomesh/com.some.package.IHelloService/{0}:{1}'.format(get_ip(), 30000), '')
         self.dubbo_channel_map = {}
 
     @gen.coroutine
     def handle_stream(self, stream, address):
-        magic_number = yield stream.read_bytes(4)
+        magic_number = yield stream.read_bytes(2)
+        gen_log.info('receive magic number success')
         if magic_number != '\xab\xcd':
             return
         interface_len = yield stream.read_bytes(4)
+        gen_log.info('get interface len: {0}'.format(repr(interface_len)))
         interface_len = bytes2int(interface_len)
+        gen_log.info('interface len: %d', interface_len)
         interface = yield stream.read_bytes(interface_len)
+        gen_log.info('get interface: [%s]', interface)
         method_len = yield stream.read_bytes(4)
         method_len = bytes2int(method_len)
         method = yield stream.read_bytes(method_len)
@@ -79,6 +83,7 @@ class PAServer(TCPServer):
             aresp = ActResponse()
             aresp.Id = dubbo_response.Id
             aresp.result = dubbo_response.result
+            return aresp
 
         while True:
             try:
@@ -93,6 +98,19 @@ class PAServer(TCPServer):
                     stream.write(make_act_response(dubbo_response).encode_body())
 
                 dubbo_client.fetch(make_dubbo_request(request), callback=callback)
+            except StreamClosedError:
+                break
+
+
+class EchoServer(TCPServer):
+    @gen.coroutine
+    def handle_stream(self, stream, address):
+        print 'another call'
+        while True:
+            try:
+                data = yield stream.read_bytes(4)
+                print 'receive data: [{0}]'.format(repr(data))
+                # yield stream.write(data)
             except StreamClosedError:
                 break
 
