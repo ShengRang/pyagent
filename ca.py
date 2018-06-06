@@ -62,7 +62,7 @@ class EndPoints(object):
 
 class IndexHandler(tornado.web.RequestHandler):
 
-    pa_client_map = {}
+    pa_clients_map = {}
     alloc = 0
 
     @asynchronous
@@ -73,13 +73,14 @@ class IndexHandler(tornado.web.RequestHandler):
         # return
         host, port = end_points.choice()
         gen_log.info('chose {0}:{1}'.format(host, port))
-        if host in IndexHandler.pa_client_map:
-            client = IndexHandler.pa_client_map[host]
+        if host in IndexHandler.pa_clients_map:
+            clients = IndexHandler.pa_clients_map[host]
         else:
             print host, port, 'not in the pa_client_map'
             gen_log.info('{0}:{1} not in pa_client_map'.format(host, port))
-            client = PAClient(host, port)
-            IndexHandler.pa_client_map[host] = client
+            clients = [PAClient(host, port) for _ in range(4)]
+            IndexHandler.pa_clients_map[host] = clients
+        client = random.choice(clients)
         request = ActRequest()
         # print 'alloc: ', IndexHandler.alloc
         # request.Id = IndexHandler.alloc
