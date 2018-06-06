@@ -86,7 +86,8 @@ class DubboConnection(object):
                                                          t - self.prof[resp.Id][0]))
         del self._callbacks[resp.Id]
         del self.prof[resp.Id]
-        self.io_loop.add_callback(cb, resp)         # 调用 callback
+        # self.io_loop.add_callback(cb, resp)         # 调用 callback
+        cb(resp)
         self.stream.read_bytes(16, self._on_header)
 
     def fetch(self, dubbo_request, callback):

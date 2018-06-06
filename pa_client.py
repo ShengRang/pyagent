@@ -105,7 +105,8 @@ class PAConnection(object):
             "ActID[{0}]: {1}, {2}, {3}, {4}, {5}, {6}, {7}".format(resp.Id, self.prof[resp.Id][0], self.prof[resp.Id][1], self.prof[resp.Id][2], t, self.prof[resp.Id][1]-self.prof[resp.Id][0], self.prof[resp.Id][2]-self.prof[resp.Id][0], t-self.prof[resp.Id][0]))
         del self.prof[resp.Id]
         del self._callbacks[resp.Id]
-        self.io_loop.add_callback(cb, resp)
+        # self.io_loop.add_callback(cb, resp)
+        cb(resp)
         self.stream.read_bytes(4, self._on_id)
 
     def fetch(self, act_request, callback):
