@@ -62,7 +62,7 @@ class PAServer(TCPServer):
         if channel_key in self.dubbo_channels_map:
             dubbo_clients = self.dubbo_channels_map[channel_key]
         else:
-            dubbo_clients = [DubboClient('localhost', 20880) for _ in range(4)]
+            dubbo_clients = [DubboClient('localhost', 20880) for _ in range(200)]
             self.dubbo_channels_map[channel_key] = dubbo_clients
         dubbo_client = random.choice(dubbo_clients)
 
