@@ -4,6 +4,7 @@ import socket
 from collections import deque
 import logging
 import logging.config
+import time
 
 from tornado.iostream import IOStream
 from tornado.ioloop import IOLoop
@@ -58,6 +59,7 @@ class PAConnection(object):
         self.key = key
         self.stream = None
         self.pepv_act_resp = None
+        self.prof = {}
         with stack_context.ExceptionStackContext(self._handle_exception):
             self.resolver.resolve(host, port, socket.AF_INET, callback=self._on_resolve)
 
@@ -97,6 +99,10 @@ class PAConnection(object):
         resp = self.pepv_act_resp
         resp.result = data
         cb = self._callbacks[resp.Id]
+        t = time.time()
+        gen_log.info(
+            "ActID[{0}]: {1}, {2}, {3}, {4}, {5}".format(resp.Id, self.prof[resp.Id][0], self.prof[resp.Id][1], t, self.prof[resp.Id][1]-self.prof[resp.Id][0], t-self.prof[resp.Id][0]))
+        del self.prof[resp.Id]
         del self._callbacks[resp.Id]
         self.io_loop.add_callback(cb, resp)
         self.stream.read_bytes(4, self._on_id)
@@ -105,6 +111,7 @@ class PAConnection(object):
         if act_request.Id in self._callbacks:
             gen_log.error("act Id {0} already in cbs !!".format(act_request.Id))
         self._callbacks[act_request.Id] = callback
+        self.prof[act_request.Id] = [time.time(), ]
         self.queue.append(act_request)
         self._process_queue()
 
@@ -115,6 +122,7 @@ class PAConnection(object):
         with stack_context.NullContext():
             while self.queue:
                 act_request = self.queue.popleft()
+                self.prof[act_request.Id].append(time.time())
                 self.stream.write(act_request.encode_body())
 
 

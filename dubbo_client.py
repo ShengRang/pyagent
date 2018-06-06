@@ -46,6 +46,7 @@ class DubboConnection(object):
         self._connected = False
         self.read_state = self.READ_HEAD
         self.prev_response = None
+        self.prof = {}
         with stack_context.ExceptionStackContext(self._handle_exception):
             self.resolver.resolve(host, port, socket.AF_INET, callback=self._on_resolve)
 
@@ -77,7 +78,13 @@ class DubboConnection(object):
         resp = self.prev_response
         resp.decode_body(data)
         cb = self._callbacks[resp.Id]
+        t = time.time()
+        gen_log.info(
+            "ActID[{0}]: {1}, {2}, {3}, {4}, {5}".format(resp.Id, self.prof[resp.Id][0], self.prof[resp.Id][1], t,
+                                                         self.prof[resp.Id][1] - self.prof[resp.Id][0],
+                                                         t - self.prof[resp.Id][0]))
         del self._callbacks[resp.Id]
+        del self.prof[resp.Id]
         self.io_loop.add_callback(cb, resp)         # 调用 callback
         self.stream.read_bytes(16, self._on_header)
 
@@ -85,6 +92,7 @@ class DubboConnection(object):
         if dubbo_request.Id in self._callbacks:
             gen_log.error("dubbo Id {0} already in cbs !!".format(dubbo_request.Id))
         self._callbacks[dubbo_request.Id] = callback
+        self.prof[dubbo_request.Id] = [time.time(), ]
         self.queue.append(dubbo_request)
         self._process_queue()
 
@@ -95,6 +103,7 @@ class DubboConnection(object):
         with stack_context.NullContext():
             while self.queue:
                 dubbo_request = self.queue.popleft()
+                self.prof[dubbo_request.Id].append(time.time())
                 # print 'write data', dubbo_request.encode()
                 self.stream.write(dubbo_request.encode())
 
