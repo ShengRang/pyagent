@@ -71,6 +71,7 @@ class DubboConnection(object):
         # print 'read header', data
         resp = Response()
         resp.decode_header(data)
+        self.prof[resp.Id].append(time.time())
         self.prev_response = resp
         self.stream.read_bytes(resp.data_len, self._on_body)
 
@@ -80,8 +81,8 @@ class DubboConnection(object):
         cb = self._callbacks[resp.Id]
         t = time.time()
         gen_log.info(
-            "ActID[{0}]: {1}, {2}, {3}, {4}, {5}".format(resp.Id, self.prof[resp.Id][0], self.prof[resp.Id][1], t,
-                                                         self.prof[resp.Id][1] - self.prof[resp.Id][0],
+            "DubboID[{0}]: {1}, {2}, {3}, {4}, {5}, {6}, {7}".format(resp.Id, self.prof[resp.Id][0], self.prof[resp.Id][1], self.prof[resp.Id][2], t,
+                                                         self.prof[resp.Id][1] - self.prof[resp.Id][0], self.prof[resp.Id][2] - self.prof[resp.Id][0],
                                                          t - self.prof[resp.Id][0]))
         del self._callbacks[resp.Id]
         del self.prof[resp.Id]
