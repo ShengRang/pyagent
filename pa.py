@@ -38,7 +38,7 @@ class PAServer(TCPServer):
         client = etcd.Client(host=etcd_host, port=2379)
         client.write('/dubbomesh/com.some.package.IHelloService/{0}:{1}'.format(get_ip(), port), weight)
         gen_log.info('register with {0}:{1} [{2}]'.format(get_ip(), port, weight))
-        self.dubbo_channels_map = {}
+        self.dubbo_channel_map = {}
 
     @gen.coroutine
     def handle_stream(self, stream, address):
@@ -59,12 +59,11 @@ class PAServer(TCPServer):
         pts_len = bytes2int(pts_len)
         pts = yield stream.read_bytes(pts_len)
         channel_key = (interface, method, pts)
-        if channel_key in self.dubbo_channels_map:
-            dubbo_clients = self.dubbo_channels_map[channel_key]
+        if channel_key in self.dubbo_channel_map:
+            dubbo_client = self.dubbo_channel_map[channel_key]
         else:
-            dubbo_clients = [DubboClient('localhost', 20880) for _ in range(200)]
-            self.dubbo_channels_map[channel_key] = dubbo_clients
-        dubbo_client = random.choice(dubbo_clients)
+            dubbo_client = DubboClient('localhost', 20880)
+            self.dubbo_channel_map[channel_key] = dubbo_client
 
         def make_request(Id):
             ar = ActRequest()
