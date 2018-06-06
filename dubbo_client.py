@@ -4,6 +4,9 @@ from collections import deque
 import socket
 import logging
 import logging.config
+import random
+import time
+from functools import partial
 
 from tornado.tcpclient import TCPClient
 from tornado.netutil import Resolver, ThreadedResolver
@@ -100,18 +103,30 @@ class DubboConnection(object):
 
 
 def main():
-    client = DubboClient('127.0.0.1', 20880)
-    r = Request()
-    r.args = 'testff'
-    r.Id = 1
+    clients = []
+    # client = DubboClient('127.0.0.1', 20880)
+    for _ in range(4):
+        clients.append(DubboClient('127.0.0.1', 20880))
+    # clients.append(DubboClient('127.0.0.1', 20880))
+    # clients.append(DubboClient('127.0.0.1', 20880))
+    # clients.append(DubboClient('127.0.0.1', 20880))
 
-    def callback(response):
-        print 'get resp:', response.Id, response.data_len, response.result
-    client.fetch(r, callback)
-    r = Request()
-    r.Id = 2
-    r.args = 'faq'
-    client.fetch(r, callback)
+    t0 = time.time()
+    fin = []
+
+    def callback(t, i, response):
+        t1 = time.time()
+        fin.append(i)
+        # print 'time cost: {0}'.format(t1-t0)
+        print '[{1}]: time cost: {0} '.format(t1-t, i), 'fin: {0}'.format(len(fin) == 512)
+
+    for i in range(512):
+        r = Request()
+        r.Id = random.randint(1, 2100000000)
+        r.args = str(random.randint(1, 2100000000))
+        client = random.choice(clients)
+        client.fetch(r, partial(callback, time.time(), i))
+
     IOLoop.current().start()
 
 

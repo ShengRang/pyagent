@@ -63,6 +63,7 @@ class PAServer(TCPServer):
             dubbo_client = self.dubbo_channel_map[channel_key]
         else:
             dubbo_client = DubboClient('localhost', 20880)
+            self.dubbo_channel_map[channel_key] = dubbo_client
 
         def make_request(Id):
             ar = ActRequest()
