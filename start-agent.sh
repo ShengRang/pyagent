@@ -8,7 +8,7 @@ echo ETCD_URL = $ETCD_URL
 
 if [[ "$1" == "consumer" ]]; then
   echo "Starting consumer agent..."
-  java -jar -Xms1536M -Xmx1536M -Dserver.port=20000 -Detcd.url=http://127.0.0.1:2379 /root/dists/ca.jar
+  java -jar -Xms1536M -Xmx1536M -Dserver.port=20000 -Detcd.url=http://etcd:2379 /root/dists/ca.jar > /root/logs/
   # python /root/dists/ca.py --port=20000 --etcd=etcd > /root/logs/ca.log 2>&1
 elif [[ "$1" == "provider-small" ]]; then
   echo "Starting small provider agent..."
