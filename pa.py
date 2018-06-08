@@ -36,7 +36,7 @@ class PAServer(TCPServer):
     def __init__(self, port=30000, weight=1, etcd_host="localhost"):
         super(PAServer, self).__init__()
         client = etcd.Client(host=etcd_host, port=2379)
-        client.write('/dubbomesh/com.some.package.IHelloService/{0}:{1}'.format(get_ip(), port), weight)
+        client.write('/dubbomesh/com.alibaba.dubbo.performance.demo.provider.IHelloService/{0}:{1}'.format(get_ip(), port), weight)
         gen_log.info('register with {0}:{1} [{2}]'.format(get_ip(), port, weight))
         self.dubbo_channel_map = {}
 

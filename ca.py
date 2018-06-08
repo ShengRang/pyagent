@@ -35,7 +35,7 @@ class EndPoints(object):
         eclient = etcd.Client(host=options.etcd, port=2379)
         end_points = []
         # end_points = [tuple(e.key[42:].split(':')) + (int(e.value),) for e in eclient.read('/dubbomesh/com.some.package.IHelloService').children]
-        for e in eclient.read('/dubbomesh/com.some.package.IHelloService').children:
+        for e in eclient.read('/dubbomesh/com.alibaba.dubbo.performance.demo.provider.IHelloService').children:
             s = e.key[42:].split(':')
             gen_log.info('get endpoint: {0}, {1}, {2}'.format(s[0], s[1], e.value))
             end_points.append((s[0], int(s[1]), int(e.value)))

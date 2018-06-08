@@ -7,7 +7,7 @@ WORKDIR /root/dists
 
 
 # Runner container
-FROM python:2.7
+FROM pypy:2
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG JAVA_VERSION=8
@@ -38,12 +38,13 @@ RUN set -ex \
        /var/lib/apt/lists/* \
        /tmp/*
 COPY --from=builder /root/dists/requirements.txt ./
-#RUN pypy -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-RUN pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+RUN pypy -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+#RUN pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 COPY --from=builder /root/workspace/services/mesh-provider/target/mesh-provider-1.0-SNAPSHOT.jar /root/dists/mesh-provider.jar
 COPY --from=builder /root/workspace/services/mesh-consumer/target/mesh-consumer-1.0-SNAPSHOT.jar /root/dists/mesh-consumer.jar
 COPY --from=builder /root/dists/*.py /root/dists/
+COPY --from=builder /root/dists/dists/*.jar /root/dists/
 
 COPY --from=builder /usr/local/bin/docker-entrypoint.sh /usr/local/bin
 
