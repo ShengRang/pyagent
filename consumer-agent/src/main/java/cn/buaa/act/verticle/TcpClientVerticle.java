@@ -73,6 +73,7 @@ public class TcpClientVerticle extends AbstractVerticle {
     }
     private Future<Void> createClient(NetClientOptions options,int port,String host) {
         Future<Void> createClientFuture = Future.future();
+        options.setTcpCork(true);
         NetClient client = vertx.createNetClient(options);
         client.connect(port,host,res -> {
             if (res.succeeded()) {
