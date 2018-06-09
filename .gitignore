@@ -103,6 +103,11 @@ ENV/
 .mypy_cache/
 
 .idea/
+.vertx/
+target/
+file-uploads/
 db.sqlite3
+
+dists/
 
 migrations/

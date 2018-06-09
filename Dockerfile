@@ -2,8 +2,8 @@
 FROM registry.cn-hangzhou.aliyuncs.com/aliware2018/services AS builder
 
 COPY . /root/dists
-WORKDIR /root/dists
-#RUN set -ex && mvn clean package
+WORKDIR /root/dists/consumer-agent
+RUN set -ex && mvn clean package
 
 
 # Runner container
@@ -44,7 +44,7 @@ RUN pypy -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn
 COPY --from=builder /root/workspace/services/mesh-provider/target/mesh-provider-1.0-SNAPSHOT.jar /root/dists/mesh-provider.jar
 COPY --from=builder /root/workspace/services/mesh-consumer/target/mesh-consumer-1.0-SNAPSHOT.jar /root/dists/mesh-consumer.jar
 COPY --from=builder /root/dists/*.py /root/dists/
-COPY --from=builder /root/dists/dists/*.jar /root/dists/
+COPY --from=builder /root/dists/consumer-agent/dists/consumer-agent-1.0-SNAPSHOT.jar /root/dists/ca.jar
 
 COPY --from=builder /usr/local/bin/docker-entrypoint.sh /usr/local/bin
 
