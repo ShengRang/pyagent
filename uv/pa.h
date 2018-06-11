@@ -7,7 +7,7 @@
 struct dubbo_client;
 
 typedef struct pa_server{
-    dubbo_client *dubbo_client;
+    struct dubbo_client *dubbo_client;
     uv_tcp_t socket;
 //    byte_buf_t *buf;
     buf_pool_t buf_pool;

@@ -67,7 +67,7 @@ RUN set -ex \
  && mkdir -p /root/logs
 
 WORKDIR /root/dists/uv
-RUN g++ pa.cc utils.cc dubbo_client.cc bytebuf.cc -luv -o /root/dists/a.out
+RUN g++ -fpermissive pa.cc utils.cc dubbo_client.cc bytebuf.cc -luv -o /root/dists/a.out
 
 EXPOSE 8087
 
