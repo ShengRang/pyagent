@@ -58,7 +58,7 @@ COPY --from=builder /root/dists/consumer-agent/target/consumer-agent-1.0-SNAPSHO
 
 COPY --from=builder /usr/local/bin/docker-entrypoint.sh /usr/local/bin
 
-COPY --from=builder /root/dists/uv /root/dists/uv
+COPY --from=builder /root/dists/uv/* /root/dists/uv/
 
 COPY start-agent.sh /usr/local/bin
 
