@@ -66,7 +66,8 @@ RUN set -ex \
  && chmod a+x /usr/local/bin/start-agent.sh \
  && mkdir -p /root/logs
 
-RUN cd uv && g++ pa.cc utils.cc dubbo_client.cc bytebuf.cc -luv -o /root/dists/a.out
+WORKDIR /root/dists/uv
+RUN g++ pa.cc utils.cc dubbo_client.cc bytebuf.cc -luv -o /root/dists/a.out
 
 EXPOSE 8087
 
