@@ -105,8 +105,11 @@ void handle_queue(dubbo_client *client) {
         return;
     }
     uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t));
-    printf("dubbo write %d bufs to client->socket\n", bcnt);
-    uv_write(w_req, (uv_stream_t*) &(client->socket), bufs, bcnt, dubbo_write_cb);
+    int ret = uv_write(w_req, (uv_stream_t*) &(client->socket), bufs, bcnt, dubbo_write_cb);
+    printf("dubbo write %d bufs to client->socket, ret: %d\n", bcnt, ret);
+    if(ret) {
+        printf("dubbo write error: %s-%s\n", uv_err_name(ret), uv_strerror(ret));
+    }
 }
 
 void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
@@ -115,9 +118,9 @@ void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
     if(client->buf){
        remain = client->buf->size - client->buf->write_idx;
     }
-    if(remain < MIN(1024u, suggested_size)) {
+    if(remain < suggested_size/3) {
         printf("no enough buffer, alloc new and push old, buf_pool size: %d\n", client->buf_pool.bufs.size());
-        byte_buf_t *new_buf = pool_malloc(&client->buf_pool, MAX(suggested_size, 1024u));
+        byte_buf_t *new_buf = pool_malloc(&client->buf_pool, suggested_size);
         printf("new buf address: %p\n", new_buf);
         if(client->buf) {
             int ri = client->buf->read_idx;

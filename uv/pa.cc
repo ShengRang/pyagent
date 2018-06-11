@@ -33,14 +33,15 @@ void _p_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
     if(context->buf){
         remain = context->buf->size - context->buf->write_idx;
     }
-//    printf("[alloc]: remain: %d\n", remain);
-    if(remain < MIN(1024u, suggested_size)) {
+    printf("[alloc]: remain: %d\n", remain);
+    if(remain < suggested_size/3) {
         printf("server no enough buffer, alloc new and push old, buf_pool size: %d\n", server->buf_pool.bufs.size());
-        byte_buf_t *new_buf = pool_malloc(&server->buf_pool, MAX(suggested_size, 1024u));
+        byte_buf_t *new_buf = pool_malloc(&server->buf_pool, suggested_size);
         printf("new buf address: %p\n", new_buf);
         if(context->buf) {
             int ri = context->buf->read_idx;
             int wi = context->buf->write_idx;
+            printf("will copy %d bytes\n", wi-ri);
             for(int i=ri; i<wi; i++) {
                 new_buf->buf[i-ri] = context->buf->buf[i];
                 new_buf->read_idx++;
@@ -50,7 +51,7 @@ void _p_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
         context->buf = new_buf;
     }
     buf->base = context->buf->buf + context->buf->write_idx;
-    buf->len = context->buf->size - context->buf->write_idx;
+    buf->len = context->buf->size - context->buf->write_idx - 1;
 //    printf("[alloc]: finish cb\n");
 }
 
@@ -92,8 +93,11 @@ void _dubbo_callback(dubbo_response *resp, stream_context *context) {
     buf->base = encode_act_response(act_resp);
     buf->len = act_response_data_length(act_resp);
     uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t));
-    printf("[_dubbo_callback]: write 1 buf to %p\n", context->channel);
-    uv_write(w_req, (uv_stream_t*)context->channel, buf, 1, act_write_cb);
+    int ret = uv_write(w_req, (uv_stream_t*)context->channel, buf, 1, act_write_cb);
+    printf("[_dubbo_callback]: write 1 buf to %p, ret: %d\n", context->channel, ret);
+    if(ret) {
+        printf("act write error: %s-%s\n", uv_err_name(ret), uv_strerror(ret));
+    }
 //    free(resp->result);
 }
 
@@ -130,7 +134,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
         stream_context *context = (stream_context*)(client->data);
         pa_server *server = context->server;
         context->buf->write_idx += nread;
-        printf("[p_read_cb]: add widx to %d\n", context->buf->write_idx);
+        printf("[p_read_cb]: add widx to %d, %d\n", context->buf->write_idx, context->buf->size);
         byte_buf_t *buf = context->buf;
         while(buf->read_idx < buf->write_idx) {
             if(!context->has_header){
@@ -201,7 +205,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
                     printf("method len: %d\n", context->method_len);
                     context->act.parameter_types_string = context->pts;
                     context->act.pts_len = context->pts_len;
-                    printf("act Id: %d,  args: [%.*s]\n", context->act.id,
+                    printf("act Id: %d, ridx: %d, widx: %d, size: %d  args: [%.*s]\n", context->act.id, buf->read_idx, buf->write_idx, buf->size,
                     context->act.p_len, context->act.parameter);
                     dubbo_fetch(server->dubbo_client, dubbo_request_from_act(&context->act), &_dubbo_callback, context);
                 }
