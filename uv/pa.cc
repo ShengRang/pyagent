@@ -92,6 +92,7 @@ void _dubbo_callback(dubbo_response *resp, stream_context *context) {
     buf->base = encode_act_response(act_resp);
     buf->len = act_response_data_length(act_resp);
     uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+    printf("[_dubbo_callback]: write 1 buf to %p\n", context->channel);
     uv_write(w_req, (uv_stream_t*)context->channel, buf, 1, act_write_cb);
 //    free(resp->result);
 }

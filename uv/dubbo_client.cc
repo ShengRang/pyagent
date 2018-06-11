@@ -82,6 +82,7 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
 }
 
 void dubbo_write_cb(uv_write_t* req, int status) {
+    printf("[dubbo_write_cb]: status: %d\n", status)
     if(status) {
         fprintf(stderr, "write cb error %s\n", uv_strerror(status));
     }
@@ -104,8 +105,8 @@ void handle_queue(dubbo_client *client) {
         return;
     }
     uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t));
-    printf("write %d bufs to client->socket\n", bcnt);
-    uv_write(w_req, (uv_stream_t*)&client->socket, bufs, bcnt, dubbo_write_cb);
+    printf("dubbo write %d bufs to client->socket\n", bcnt);
+    uv_write(w_req, (uv_stream_t*) &(client->socket), bufs, bcnt, dubbo_write_cb);
 }
 
 void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
