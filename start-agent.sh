@@ -14,16 +14,16 @@ elif [[ "$1" == "provider-small" ]]; then
   echo "Starting small provider agent..."
   # pypy /root/dists/pa.py --port=30000 --etcd=etcd --weight=14 > /root/logs/pas.log 2>&1
   pypy /root/dists/pa_register.py  --port=30000 --etcd=etcd --weight=14
-  a.out > /root/logs/pas.log 2>&1
+  /root/dists/a.out > /root/logs/pas.log 2>&1
 elif [[ "$1" == "provider-medium" ]]; then
   echo "Starting medium provider agent..."
   pypy /root/dists/pa_register.py  --port=30000 --etcd=etcd --weight=25
-  a.out > /root/logs/pas.log 2>&1
+  /root/dists/a.out > /root/logs/pas.log 2>&1
   # pypy /root/dists/pa.py --port=30000 --etcd=etcd --weight=25 > /root/logs/pam.log 2>&1
 elif [[ "$1" == "provider-large" ]]; then
   echo "Starting large provider agent..."
   pypy /root/dists/pa_register.py  --port=30000 --etcd=etcd --weight=25
-  a.out > /root/logs/pas.log 2>&1
+  /root/dists/a.out > /root/logs/pas.log 2>&1
   # pypy /root/dists/pa.py --port=30000 --etcd=etcd --weight=25 > /root/logs/pal.log 2>&1
 else
   echo "Unrecognized arguments, exit."
