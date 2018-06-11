@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <uv.h>
 #include <stdlib.h>
+#include <string.h>
 #include <algorithm>
 #include <map>
 
