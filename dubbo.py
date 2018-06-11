@@ -60,7 +60,7 @@ class Response(object):
 
 if __name__ == '__main__':
     r = Request()
-    r.args = 'dsadssadasa'
+    r.args = 'test'
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(('localhost', 20880))

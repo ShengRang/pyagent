@@ -130,12 +130,13 @@ def main():
         t1 = time.time()
         fin.append(i)
         # print 'time cost: {0}'.format(t1-t0)
+        print response.result
         print '[{1}]: time cost: {0} '.format(t1-t, i), 'fin: {0}'.format(len(fin) == 512)
 
-    for i in range(512):
+    for i in range(2048):
         r = Request()
         r.Id = random.randint(1, 2100000000)
-        r.args = str(random.randint(1, 2100000000))
+        r.args = 'test'
         client = random.choice(clients)
         client.fetch(r, partial(callback, time.time(), i))
 
