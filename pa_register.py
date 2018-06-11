@@ -1,5 +1,7 @@
 import logging
 import logging.config
+import socket
+import time
 
 import tornado.options
 from tornado.options import define, options
@@ -16,3 +18,15 @@ tornado.options.parse_command_line()
 client = etcd.Client(host=options.etcd, port=2379)
 client.write('/dubbomesh/com.alibaba.dubbo.performance.demo.provider.IHelloService/{0}:{1}'.format(get_ip(), options.port), options.weight)
 gen_log.info('register with {0}:{1} [{2}]'.format(get_ip(), options.port, options.weight))
+
+while True:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect(('127.0.0.1', 20880))
+        s.close()
+        gen_log.info("connect to 20880 success")
+        break
+    except socket.error:
+        gen_log.info("connect to 20880 fail, wait a second")
+        time.sleep(0.2)
+        pass

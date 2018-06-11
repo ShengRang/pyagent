@@ -182,7 +182,7 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
 
 void _d_on_connect(uv_connect_t *conn, int status) {
     if(status < 0) {
-        fprintf(stderr, "new connect error %s", uv_strerror(status));
+        fprintf(stderr, "new connect error %s, lets retry\n", uv_strerror(status));
     } else {
         printf("[d_on_connect]: connect success, status: %d\n", status);
         dubbo_client* d_client = (dubbo_client*)conn->data;
