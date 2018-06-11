@@ -82,7 +82,7 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
 }
 
 void dubbo_write_cb(uv_write_t* req, int status) {
-    printf("[dubbo_write_cb]: status: %d\n", status)
+    printf("[dubbo_write_cb]: status: %d\n", status);
     if(status) {
         fprintf(stderr, "write cb error %s\n", uv_strerror(status));
     }
