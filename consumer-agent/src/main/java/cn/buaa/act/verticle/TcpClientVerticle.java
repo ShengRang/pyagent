@@ -73,7 +73,7 @@ public class TcpClientVerticle extends AbstractVerticle {
     }
     private Future<Void> createClient(NetClientOptions options,int port,String host) {
         Future<Void> createClientFuture = Future.future();
-        options.setTcpCork(true);
+//        options.setTcpCork(true);
 //        options.setTcpNoDelay(true);
         NetClient client = vertx.createNetClient(options);
         client.connect(port,host,res -> {
@@ -103,6 +103,7 @@ public class TcpClientVerticle extends AbstractVerticle {
                     }
                     else {
                         ActResponse object = (ActResponse)fres.result();
+                        System.out.println(String.format("get act resp: %d, %s", object.apid, object.result));
                         writeHttpResponse(object);
                     }
                 }));

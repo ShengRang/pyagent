@@ -36,7 +36,7 @@ class EndPoints(object):
         end_points = []
         # end_points = [tuple(e.key[42:].split(':')) + (int(e.value),) for e in eclient.read('/dubbomesh/com.some.package.IHelloService').children]
         for e in eclient.read('/dubbomesh/com.alibaba.dubbo.performance.demo.provider.IHelloService').children:
-            s = e.key[42:].split(':')
+            s = e.key[69:].split(':')
             gen_log.info('get endpoint: {0}, {1}, {2}'.format(s[0], s[1], e.value))
             end_points.append((s[0], int(s[1]), int(e.value)))
         self.end_points = sorted(end_points, key=lambda pair: -pair[2])
@@ -90,6 +90,7 @@ class IndexHandler(tornado.web.RequestHandler):
         request.method = self.get_argument('method').encode('utf-8')
         request.parameter_types_string = self.get_argument('parameterTypesString').encode('utf-8')
         request.parameter = self.get_argument('parameter').encode('utf-8')
+        gen_log.info("Id: {0}, arg: {1}".format(request.Id, request.parameter))
         client.fetch(request, self._callback)
 
     def _callback(self, act_response):
@@ -132,7 +133,7 @@ if __name__ == '__main__':
 #     sockets = tornado.netutil.bind_sockets(options.port)
 #     server.add_sockets(sockets)
     server.bind(options.port, backlog=2048)
-    server.start(0)
+    server.start(1)
     random.seed(os.getpid())
     tornado.ioloop.IOLoop.current().start()
 #     tornado.ioloop.IOLoop.instance().start()

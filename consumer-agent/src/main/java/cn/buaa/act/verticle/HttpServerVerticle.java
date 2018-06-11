@@ -94,12 +94,14 @@ public class HttpServerVerticle extends AbstractVerticle {
                     header.appendInt(actRequest.Interface.length()).appendString(actRequest.Interface);
                     header.appendInt(actRequest.Method.length()).appendString(actRequest.Method);
                     header.appendInt(actRequest.ParameterTypesString.length()).appendString(actRequest.ParameterTypesString);
-                    header.appendBuffer(buffer);
+//                    header.appendBuffer(buffer);
                     paMap.get(select).responseMap.put(actRequest.apid,response);
                     paMap.get(select).netSocket.write(header);
+                    paMap.get(select).netSocket.write(buffer);
                 }
                 else {
                     paMap.get(select).responseMap.put(actRequest.apid,response);
+                    System.out.println("write act request: " + actRequest.apid + " " + para);
                     paMap.get(select).netSocket.write(buffer);
                 }
             //tcpClientVerticle.responseMap.put(actRequest.apid,response);

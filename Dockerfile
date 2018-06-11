@@ -9,6 +9,16 @@ RUN set -ex && mvn clean package
 # Runner container
 FROM pypy:2
 
+RUN git clone https://github.com/libuv/libuv.git \
+    && cd libuv \
+    && sh autogen.sh \
+    && ./configure \
+    && make \
+#    && make check \
+    && make install \
+    && ldconfig \
+    && cd ..
+
 ARG DEBIAN_FRONTEND=noninteractive
 ARG JAVA_VERSION=8
 ARG JAVA_UPDATE=172
@@ -48,11 +58,15 @@ COPY --from=builder /root/dists/consumer-agent/target/consumer-agent-1.0-SNAPSHO
 
 COPY --from=builder /usr/local/bin/docker-entrypoint.sh /usr/local/bin
 
+COPY --from=builder /root/dists/uv /root/dists/uv
+
 COPY start-agent.sh /usr/local/bin
 
 RUN set -ex \
  && chmod a+x /usr/local/bin/start-agent.sh \
  && mkdir -p /root/logs
+
+RUN cd uv && g++ pa.cc utils.cc dubbo_client.cc bytebuf.cc -luv -o /root/dists/a.out
 
 EXPOSE 8087
 

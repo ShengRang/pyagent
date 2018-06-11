@@ -6,40 +6,28 @@
 
 #include "dubbo_client.h"
 #include "bytebuf.h"
+#include "utils.h"
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
-void write_ll(char *buf, long long v){
-    buf[0] = (v >> 56) & 0xff;
-    buf[1] = (v >> 48) & 0xff;
-    buf[2] = (v >> 40) & 0xff;
-    buf[3] = (v >> 32) & 0xff;
-    buf[4] = (v >> 24) & 0xff;
-    buf[5] = (v >> 16) & 0xff;
-    buf[6] = (v >> 8) & 0xff;
-    buf[7] = v & 0xff;
-}
-
-void write_int(char *buf, int v){
-    buf[0] = (v >> 24) & 0xff;
-    buf[1] = (v >> 16) & 0xff;
-    buf[2] = (v >> 8) & 0xff;
-    buf[3] = v & 0xff;
-}
-
 uv_buf_t dubbo_request_encode(dubbo_request *request) {
-    int dubbo_version_len = strlen(request->dubbo_version);
-    int interface_name_len = strlen(request->interface_name);
-    int method_name_len = strlen(request->method_name);
-    int parameter_types_string_len = strlen(request->parameter_types_string);
-    int args_len = strlen(request->args);
+    // int dubbo_version_len = strlen(request->dubbo_version);
+    int dubbo_version_len = request->dubbo_version_len;
+    // int interface_name_len = strlen(request->interface_name);
+    int interface_name_len = request->interface_len;
+//    int method_name_len = strlen(request->method_name);
+    int method_name_len = request->method_len;
+    // int parameter_types_string_len = strlen(request->parameter_types_string);
+    int parameter_types_string_len = request->pts_len;
+    int args_len = request->args_len;
+    // int args_len = strlen(request->args);
     // '{"path":"com.alibaba.dubbo.performance.demo.provider.IHelloService"}\n'
     int f_len = 69;
     int total_len = 4 + 8 + 4 + (dubbo_version_len + 1) + (interface_name_len + 1) + 5 + (parameter_types_string_len + 1)
                     + (args_len + 1) + (f_len) + 10 + (method_name_len + 1);
     char *buffer = (char*)malloc(total_len);
-    printf("%d, %d, %d, %d, %d\n", dubbo_version_len, interface_name_len, parameter_types_string_len, args_len, f_len);
+    printf("%d, %d, %d, %d, %d, %d\n", dubbo_version_len, interface_name_len, method_name_len, parameter_types_string_len, args_len, f_len);
     printf("[dubbo encode]: total len: %d\n", total_len);
     int pos = 0;
     buffer[0] = 0xda; buffer[1] = 0xbb; buffer[2] = 0xc6; buffer[3] = 0x00; pos += 4;
@@ -83,6 +71,12 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
 
     strcpy(buffer+pos, "{\"path\":\"com.alibaba.dubbo.performance.demo.provider.IHelloService\"}\n");
     uv_buf_t res = uv_buf_init(buffer, total_len);
+
+    printf("[dubbo_encode]: ");
+    for(int i=0; i<16; i++)
+        printf("%x ", buffer[i] & 0xff);
+    printf("next: [%.*s]\n", total_len-16, buffer+16);
+
     return res;
 }
 
@@ -102,7 +96,11 @@ void handle_queue(dubbo_client *client) {
     int bcnt = 0;
     while(!client->queue.empty()) {
         dubbo_request *dreq = client->queue.front(); client->queue.pop();
-        bufs[bcnt++] = dubbo_request_encode(dreq);
+        bufs[bcnt++] = dubbo_request_encode(dreq);                              // TODO: 回收内存
+    }
+    if(bcnt <= 0) {
+        printf("bcnt <= 0, break\n");
+        return;
     }
     uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t));
     printf("write %d bufs to client->socket\n", bcnt);
@@ -134,16 +132,7 @@ void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
     buf->len = client->buf->size - client->buf->write_idx;
 }
 
-int bytes2int(char *buf) {
-    return ((buf[0]&0xff) << 24) | ((buf[1]&0xff) << 16) | ((buf[2] & 0xff) << 8) | (buf[3] & 0xff);
-}
 
-long long bytes2ll(char *buf) {
-    int lo, hi;
-    hi = bytes2int(buf);
-    lo = bytes2int(buf+4);
-    return ((long long)hi << 32) + lo;
-}
 
 void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
     printf("[d_read_cb]: stream p: %p, nread: %ld\n", stream, nread);
@@ -182,8 +171,9 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
             // printf("get result: [%s]\n", client->dubbo_resp.result);
             buf->read_idx += client->dubbo_resp.data_len;
             client->read_state = 0;
-            (*client->cbs[client->dubbo_resp.id])(&client->dubbo_resp, client);             // result的内存自行free
+            (*client->cbs[client->dubbo_resp.id])(&client->dubbo_resp, (client->contexts[client->dubbo_resp.id]));             // result的内存自行free
             client->cbs.erase(client->cbs.find(client->dubbo_resp.id));
+            client->contexts.erase(client->contexts.find(client->dubbo_resp.id));
         }
     }
     return;
@@ -201,7 +191,7 @@ void _d_on_connect(uv_connect_t *conn, int status) {
     }
 }
 
-void dubbo_fetch(dubbo_client *client, dubbo_request *request, dubbo_callback cb){
+void dubbo_fetch(dubbo_client *client, dubbo_request *request, dubbo_callback cb, stream_context *context){
     printf("start fetch\n");
     client->queue.push(request);
 
@@ -209,6 +199,7 @@ void dubbo_fetch(dubbo_client *client, dubbo_request *request, dubbo_callback cb
         printf("id %lld already in cbs\n", request->id);
     }
     client->cbs[request->id] = cb;
+    client->contexts[request->id] = context;
     printf("add callback to map\n");
     handle_queue(client);
 }

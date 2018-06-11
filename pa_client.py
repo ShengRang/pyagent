@@ -149,11 +149,11 @@ if __name__ == "__main__":
     logging.config.dictConfig(logging_config)
     client = PAClient('localhost', 30000)
     req = ActRequest()
-    req.Id = 1
+    req.Id = 1468690954
     req.interface = 'com.alibaba.dubbo.performance.demo.provider.IHelloService'
     req.method = 'hash'
     req.parameter_types_string = 'Ljava/lang/String;'
-    req.parameter = 'test'
+    req.parameter = 'VkaYzpkvaB91YKS2IPnbYYCa9KySJjazDox3gv8XR2haatbqOOzIo90a3WR1tBAjojeHSgLjL3nZYl42n8iARYBh9yojX7vealdJGHxCbHQxIuXGxagl3IdAgtiG1q3lrRMey7pKzI7Qz0di3xZaWdKC3GXlwgQ4O2OnOBLIx9RMcr8v0Dlh5EwHHXfqGm9771QhnnvI9Tt7eoUtLMEu8xl65jJEtG4rNMz9quftC5NtJBEcc7TJB4CU6vYZ5fCgbUqLke0YqOSqEFJyE6evN68m1UzoJSXuPOmhPyrQRdGR3fybqxjOzy2OthtA44guBKMOLyUAoktinn0xkfNtk7XxBkcv9VAFf2n4klKBndbbcE1AIk7e4G1zg9aH6juVcksIfTL4181ZdO5elTOYMIk42qO1Cw1Dpc1d5gyLBDKsW2k3PMZWu2FGYZNLmucY68BCDnR8afeNbh45JUdcj1meJYzviCEzwuXCwswBrIMxD3wIB7LbpNWGCOJfa4Zbwx9GOKhBNx1mK3y85NYW1tN88PPrlk50C3Ad8bo7OkwI568UlnAHJkPWtcIM6fkwaund91sGLVoga7sdrEimByNKXGm6Kct9EKH2PP6qaP1h5z2eDV3fkYBcRzbivS0aWvxLpQPTvbvuANu1e0L4CDei1l4XscDfdFmksDDiTyfkVytuZHkOkfQ1bOUTkf9YE1iBaboJiuCUlUAyacLwigTysb02EYivvYE8csAnlkcSylDuDPcCM8C1JWoLr2t7FHkM8pCrhFDokEanjpB6s2gESOLUeA0N3ZThZdOyU4m0ySGLFMtsy9zJYSCFqlIt7udaEpyZ5j9LciZEjNrVRBthhgc4xNPP9MXdRTcQ8FBcZOua6zi2sa4BtmUZxr7GOGfoEuWg6v3JCiPY'
 
     def callback(act_response):
         print 'get act response Id: {0} res: [{1}]'.format(act_response.Id, act_response.result)
