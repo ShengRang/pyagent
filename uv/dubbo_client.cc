@@ -119,12 +119,13 @@ void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
        remain = client->buf->size - client->buf->write_idx;
     }
     if(remain < suggested_size/3) {
-        printf("no enough buffer, alloc new and push old, buf_pool size: %d\n", client->buf_pool.bufs.size());
+        printf("[d_alloc_cb]: no enough buffer, alloc new and push old, buf_pool size: %d\n", client->buf_pool.bufs.size());
         byte_buf_t *new_buf = pool_malloc(&client->buf_pool, suggested_size);
-        printf("new buf address: %p\n", new_buf);
+        printf("[d_alloc_cb]: new buf address: %p\n", new_buf);
         if(client->buf) {
             int ri = client->buf->read_idx;
             int wi = client->buf->write_idx;
+            printf("[d_alloc_cb]: will copy %d bytes\n", wi-ri);
             for(int i=ri; i<wi; i++) {
                 new_buf->buf[i-ri] = client->buf->buf[i];
                 new_buf->read_idx++;
@@ -134,7 +135,7 @@ void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
         client->buf = new_buf;
     }
     buf->base = client->buf->buf + client->buf->write_idx;
-    buf->len = client->buf->size - client->buf->write_idx;
+    buf->len = client->buf->size - client->buf->write_idx - 1;
 }
 
 
@@ -155,25 +156,25 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
             if((buf->buf[buf->read_idx] & 0xff) == 0xda && (buf->buf[buf->read_idx+1] & 0xff) == 0xbb) {
                 buf->read_idx += 4;
                 client->read_state = (client->read_state + 1);
-                printf("get header, status: %x %x\n", buf->buf[buf->read_idx-4+2] &0xff, buf->buf[buf->read_idx-4+3] &0xff);
+                printf("[d_read_cb]: get header, status: %x %x\n", buf->buf[buf->read_idx-4+2] &0xff, buf->buf[buf->read_idx-4+3] &0xff);
             }
         }
         if(client->read_state == 1 && buf->write_idx - buf->read_idx >= 8) {
             client->dubbo_resp.id = bytes2ll(buf->buf + buf->read_idx);
             buf->read_idx += 8;
             client->read_state = (client->read_state + 1);
-            // printf("get id: %lld\n", client->dubbo_resp.id);
+            printf("[d_read_cb]get dubbo resp id: %lld\n", client->dubbo_resp.id);
         }
         if(client->read_state == 2 && buf->write_idx - buf->read_idx >= 4) {
             client->dubbo_resp.data_len = bytes2int(buf->buf + buf->read_idx);
             buf->read_idx += 4;
             client->read_state = (client->read_state + 1);
-            // printf("gget data len: %d\n", client->dubbo_resp.data_len);
+            printf("[d_read_cb]: get dubbo data len: %d\n", client->dubbo_resp.data_len);
         }
         if(client->read_state == 3 && buf->write_idx - buf->read_idx >= client->dubbo_resp.data_len) {
             client->dubbo_resp.result = (char*)malloc(client->dubbo_resp.data_len);
             strncpy(client->dubbo_resp.result, buf->buf + buf->read_idx, client->dubbo_resp.data_len);
-            // printf("get result: [%s]\n", client->dubbo_resp.result);
+            printf("get dubbo result: [%s]\n", client->dubbo_resp.result);
             buf->read_idx += client->dubbo_resp.data_len;
             client->read_state = 0;
             (*client->cbs[client->dubbo_resp.id])(&client->dubbo_resp, (client->contexts[client->dubbo_resp.id]));             // result的内存自行free
@@ -197,7 +198,7 @@ void _d_on_connect(uv_connect_t *conn, int status) {
 }
 
 void dubbo_fetch(dubbo_client *client, dubbo_request *request, dubbo_callback cb, stream_context *context){
-    printf("start fetch\n");
+    printf("[dubbo_fetch]: start fetch\n");
     client->queue.push(request);
 
     if(client->cbs.find(request->id) != client->cbs.end()){
