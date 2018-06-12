@@ -35,8 +35,8 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
     int total_len = 4 + 8 + 4 + (dubbo_version_len + 1) + (interface_name_len + 1) + 5 + (parameter_types_string_len + 1)
                     + (args_len + 1) + (f_len) + 10 + (method_name_len + 1);
     char *buffer = (char*)malloc(total_len);                        // TODO: free
-    printf("%d, %d, %d, %d, %d, %d\n", dubbo_version_len, interface_name_len, method_name_len, parameter_types_string_len, args_len, f_len);
-    printf("[dubbo encode]: total len: %d\n", total_len);
+//    printf("%d, %d, %d, %d, %d, %d\n", dubbo_version_len, interface_name_len, method_name_len, parameter_types_string_len, args_len, f_len);
+//    printf("[dubbo encode]: total len: %d\n", total_len);
     int pos = 0;
     buffer[0] = 0xda; buffer[1] = 0xbb; buffer[2] = 0xc6; buffer[3] = 0x00; pos += 4;
 
@@ -80,9 +80,9 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
     strncpy(buffer+pos, "{\"path\":\"com.alibaba.dubbo.performance.demo.provider.IHelloService\"}\n", 69);
     uv_buf_t res = uv_buf_init(buffer, total_len);
 
-    printf("[dubbo_encode]: ");
-    for(int i=0; i<16; i++)
-        printf("%x ", buffer[i] & 0xff);
+//    printf("[dubbo_encode]: ");
+//    for(int i=0; i<16; i++)
+//        printf("%x ", buffer[i] & 0xff);
     // printf("next: [%.*s]\n", total_len-16, buffer+16);
 
     return res;
@@ -91,18 +91,18 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
 void dubbo_write_cb(uv_write_t* req, int status) {
     dubbo_encode_wcb_context *ctx = (dubbo_encode_wcb_context*)req->data;
     for(int i=0; i<ctx->bcnt; i++) {
-        printf("[dubbo_write_cb]: free ctx->bufs[%d].base: %p\n", i, ctx->bufs[i].base);
+//        printf("[dubbo_write_cb]: free ctx->bufs[%d].base: %p\n", i, ctx->bufs[i].base);
         free(ctx->bufs[i].base);
     }
-    printf("[dubbo_write_cb]: free ctx->bufs: %p\n", ctx->bufs);
+//    printf("[dubbo_write_cb]: free ctx->bufs: %p\n", ctx->bufs);
     free(ctx->bufs);
-    printf("[dubbo_write_cb]: free ctx: %p\n", ctx);
+//    printf("[dubbo_write_cb]: free ctx: %p\n", ctx);
     free(ctx);
-    printf("[dubbo_write_cb]: status: %d\n", status);
+//    printf("[dubbo_write_cb]: status: %d\n", status);
     if(status) {
         fprintf(stderr, "write cb error %s\n", uv_strerror(status));
     }
-    printf("[dubbo_write_cb]: free write_req: %p\n", req);
+//    printf("[dubbo_write_cb]: free write_req: %p\n", req);
     free(req);
 }
 
@@ -111,8 +111,8 @@ void free_dubbo_request(dubbo_request *request) {
 //    printf("free inter: %p\n", request->interface_name);
 //    printf("free method: %p\n", request->method_name);
 //    printf("free pts: %p\n", request->parameter_types_string);
-    printf("free args: %p\n", request->args);
-    printf("free dubbo_request: %p\n", request);
+//    printf("free args: %p\n", request->args);
+//    printf("free dubbo_request: %p\n", request);
 //    free(request->interface_name);
 //    free(request->method_name);
 //    free(request->parameter_types_string);
@@ -123,7 +123,7 @@ void free_dubbo_request(dubbo_request *request) {
 
 void handle_queue(dubbo_client *client) {
     if(!client->connected) {
-        printf("[handle_queue]: connection not ready\n");
+//        printf("[handle_queue]: connection not ready\n");
         return;
     }
     uv_buf_t *bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t)*client->queue.size() + FK);      // TODO: free bufs
@@ -134,7 +134,7 @@ void handle_queue(dubbo_client *client) {
         // free_dubbo_request(dreq);
     }
     if(bcnt <= 0) {
-        printf("bcnt <= 0, break\n");
+//        printf("bcnt <= 0, break\n");
         free(bufs);
         return;
     }
@@ -143,7 +143,7 @@ void handle_queue(dubbo_client *client) {
     ctx->bufs = bufs; ctx->bcnt = bcnt;
     w_req->data = ctx;
     int ret = uv_write(w_req, (uv_stream_t*) &(client->socket), bufs, bcnt, dubbo_write_cb);
-    printf("dubbo write %d bufs to client->socket, ret: %d\n", bcnt, ret);
+//    printf("dubbo write %d bufs to client->socket, ret: %d\n", bcnt, ret);
     if(ret) {
         printf("dubbo write error: %s-%s\n", uv_err_name(ret), uv_strerror(ret));
     }
@@ -157,13 +157,13 @@ void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
     }
 //    suggested_size = 2048;
     if(remain < suggested_size/3) {
-        printf("[d_alloc_cb]: no enough buffer, alloc new and push old, buf_pool size: %d\n", client->buf_pool.bufs.size());
+//        printf("[d_alloc_cb]: no enough buffer, alloc new and push old, buf_pool size: %d\n", client->buf_pool.bufs.size());
         byte_buf_t *new_buf = pool_malloc(&client->buf_pool, suggested_size);
-        printf("[d_alloc_cb]: new buf address: %p\n", new_buf);
+//        printf("[d_alloc_cb]: new buf address: %p\n", new_buf);
         if(client->buf) {
             int ri = client->buf->read_idx;
             int wi = client->buf->write_idx;
-            printf("[d_alloc_cb]: will copy %d bytes\n", wi-ri);
+//            printf("[d_alloc_cb]: will copy %d bytes\n", wi-ri);
             for(int i=ri; i<wi; i++) {
                 new_buf->buf[i-ri] = client->buf->buf[i];
                 new_buf->write_idx++;
@@ -179,7 +179,7 @@ void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
 
 
 void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
-    printf("[d_read_cb]: stream p: %p, nread: %ld\n", stream, nread);
+//    printf("[d_read_cb]: stream p: %p, nread: %ld\n", stream, nread);
     if(nread < 0) {
         printf("[d_raed_cb], nread(%ld) < 0\n", nread);
         return;
@@ -187,17 +187,17 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
     // printf("[d_read_cb]: [%.*s]\n", (int)uv_buf->len, uv_buf->base);
     dubbo_client *client = (dubbo_client*)stream->data;
     client->buf->write_idx += nread;
-    printf("[d_read_cb]: add write idx to %d\n", client->buf->write_idx);
+//    printf("[d_read_cb]: add write idx to %d\n", client->buf->write_idx);
     byte_buf_t *buf = client->buf;
     while(buf->read_idx < buf->write_idx) {
-        printf("[d_read_cb]: d_while ridx: %d, widx: %d, state: %d\n", buf->read_idx, buf->write_idx, client->read_state);
+//        printf("[d_read_cb]: d_while ridx: %d, widx: %d, state: %d\n", buf->read_idx, buf->write_idx, client->read_state);
         if(client->read_state == 0) {
             if(buf->write_idx - buf->read_idx >= 4) {
                 if ((buf->buf[buf->read_idx] & 0xff) == 0xda && (buf->buf[buf->read_idx + 1] & 0xff) == 0xbb) {
                     buf->read_idx += 4;
                     client->read_state = (client->read_state + 1);
-                    printf("[d_read_cb]: get header, status: %x %x\n", buf->buf[buf->read_idx - 4 + 2] & 0xff,
-                           buf->buf[buf->read_idx - 4 + 3] & 0xff);
+//                    printf("[d_read_cb]: get header, status: %x %x\n", buf->buf[buf->read_idx - 4 + 2] & 0xff,
+//                           buf->buf[buf->read_idx - 4 + 3] & 0xff);
                 }
             } else {
                 break;
@@ -208,7 +208,7 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
                 client->dubbo_resp.id = bytes2ll(buf->buf + buf->read_idx);
                 buf->read_idx += 8;
                 client->read_state = (client->read_state + 1);
-                printf("[d_read_cb]get dubbo resp id: %lld\n", client->dubbo_resp.id);
+//                printf("[d_read_cb]get dubbo resp id: %lld\n", client->dubbo_resp.id);
             } else {
                 break;
             }
@@ -218,17 +218,17 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
                 client->dubbo_resp.data_len = bytes2int(buf->buf + buf->read_idx);
                 buf->read_idx += 4;
                 client->read_state = (client->read_state + 1);
-                printf("[d_read_cb]: get dubbo data len: %d\n", client->dubbo_resp.data_len);
+//                printf("[d_read_cb]: get dubbo data len: %d\n", client->dubbo_resp.data_len);
             } else {
                 break;
             }
         }
         if(client->read_state == 3) {
-            printf("[d_read_cb]: need data_len: %d\n", client->dubbo_resp.data_len);
+//            printf("[d_read_cb]: need data_len: %d\n", client->dubbo_resp.data_len);
             if (buf->write_idx - buf->read_idx >= client->dubbo_resp.data_len) {
                 client->dubbo_resp.result = (char *) malloc(client->dubbo_resp.data_len + FK);                       // TODO free
                 strncpy(client->dubbo_resp.result, buf->buf + buf->read_idx, client->dubbo_resp.data_len);
-                printf("get dubbo result: [...]\n"); //, client->dubbo_resp.result); // %s 危险.
+//                printf("get dubbo result: [...]\n"); //, client->dubbo_resp.result); // %s 危险.
                 buf->read_idx += client->dubbo_resp.data_len;
                 client->read_state = 0;
                 (*client->cbs[client->dubbo_resp.id])(&client->dubbo_resp,
@@ -240,7 +240,7 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
             }
         }
     }
-    printf("[d_read_cb]: b_leave, r: %d, w: %d\n", buf->read_idx, buf->write_idx);
+//    printf("[d_read_cb]: b_leave, r: %d, w: %d\n", buf->read_idx, buf->write_idx);
     return;
 }
 
@@ -248,7 +248,7 @@ void _d_on_connect(uv_connect_t *conn, int status) {
     if(status < 0) {
         fprintf(stderr, "new connect error %s, lets retry\n", uv_strerror(status));
     } else {
-        printf("[d_on_connect]: connect success, status: %d\n", status);
+//        printf("[d_on_connect]: connect success, status: %d\n", status);
         dubbo_client* d_client = (dubbo_client*)conn->data;
         d_client->connected = 1;
         uv_read_start((uv_stream_t*)&d_client->socket, _d_alloc_cb, _d_read_cb);
@@ -257,7 +257,7 @@ void _d_on_connect(uv_connect_t *conn, int status) {
 }
 
 void dubbo_fetch(dubbo_client *client, dubbo_request *request, dubbo_callback cb, stream_context *context){
-    printf("[dubbo_fetch]: start fetch\n");
+//    printf("[dubbo_fetch]: start fetch\n");
     client->queue.push(request);
 
     if(client->cbs.find(request->id) != client->cbs.end()){
@@ -265,7 +265,7 @@ void dubbo_fetch(dubbo_client *client, dubbo_request *request, dubbo_callback cb
     }
     client->cbs[request->id] = cb;
     client->contexts[request->id] = context;
-    printf("add callback to map\n");
+//    printf("add callback to map\n");
     handle_queue(client);
 }
 

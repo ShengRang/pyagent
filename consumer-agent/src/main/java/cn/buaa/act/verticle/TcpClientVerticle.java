@@ -103,7 +103,7 @@ public class TcpClientVerticle extends AbstractVerticle {
                     }
                     else {
                         ActResponse object = (ActResponse)fres.result();
-                        System.out.println(String.format("get act resp: %d, %s", object.apid, object.result));
+//                        System.out.println(String.format("get act resp: %d, %s", object.apid, object.result));
                         writeHttpResponse(object);
                     }
                 }));

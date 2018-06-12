@@ -22,7 +22,7 @@ stream_context *create_pa_context(pa_server *server, uv_tcp_t *channel) {
     res->header_state = res->body_state = res->has_header = 0;
     res->buf = NULL;
     res->channel = channel;
-    printf("[create_pa_context]: finish create context, p: %p\n", res);
+//    printf("[create_pa_context]: finish create context, p: %p\n", res);
     return res;
 }
 
@@ -35,16 +35,16 @@ void _p_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
     if(context->buf){
         remain = context->buf->size - context->buf->write_idx;
     }
-    printf("[alloc]: remain: %d\n", remain);
+//    printf("[alloc]: remain: %d\n", remain);
 //    suggested_size = 2048;  // just debug
     if(remain < suggested_size/3) {
-        printf("server no enough buffer, alloc new and push old, buf_pool size: %d\n", server->buf_pool.bufs.size());
+//        printf("server no enough buffer, alloc new and push old, buf_pool size: %d\n", server->buf_pool.bufs.size());
         byte_buf_t *new_buf = pool_malloc(&server->buf_pool, suggested_size);
-        printf("new buf address: %p\n", new_buf);
+//        printf("new buf address: %p\n", new_buf);
         if(context->buf) {
             int ri = context->buf->read_idx;
             int wi = context->buf->write_idx;
-            printf("will copy %d bytes\n", wi-ri);
+//            printf("will copy %d bytes\n", wi-ri);
             for(int i=ri; i<wi; i++) {
                 new_buf->buf[i-ri] = context->buf->buf[i];
                 new_buf->write_idx++;
@@ -68,16 +68,16 @@ act_response* act_response_from_dubbo(dubbo_response *dubbo_resp){
 
 void act_write_cb(uv_write_t* req, int status) {
     uv_buf_t *buf = (uv_buf_t*)req->data;
-    printf("[act_write_cb]: free buf->base: %p\n", buf->base);
-    printf("[act_write_cb]: free buf: %p\n", buf);
+//    printf("[act_write_cb]: free buf->base: %p\n", buf->base);
+//    printf("[act_write_cb]: free buf: %p\n", buf);
     free(buf->base);
     free(buf);
-    printf("[act_write_cb]: status: %d\n", status); // uv_strerror(status));
+//    printf("[act_write_cb]: status: %d\n", status); // uv_strerror(status));
     if(status) {
         printf("[act_write_cb]: status: %d[%s]_\n", status, uv_strerror(status));
 //        fprintf(stderr, "write cb error %s\n", uv_strerror(status));
     }
-    printf("[act_write_cb]: free write req: %p\n", req);
+//    printf("[act_write_cb]: free write req: %p\n", req);
     free(req);
 }
 
@@ -94,8 +94,8 @@ char* encode_act_response(act_response *resp) {
 }
 
 void free_act_response(act_response *response) {
-    printf("[free_act_response]: free response->result: %p\n", response->result);
-    printf("[free_act_response]: free response: %p\n", response);
+//    printf("[free_act_response]: free response->result: %p\n", response->result);
+//    printf("[free_act_response]: free response: %p\n", response);
     free(response->result);
     free(response);
 }
@@ -108,8 +108,8 @@ void free_dubbo_response(dubbo_response *response){
 }
 
 void _dubbo_callback(dubbo_response *resp, stream_context *context) {
-    printf("[test cb]: get resp id: %lld, data len: %d, data: [...]\n", resp->id, resp->data_len); //, resp->data_len, resp->result);
-    printf("caller p: %p, server p: %p\n", context->server, &server);
+//    printf("[test cb]: get resp id: %lld, data len: %d, data: [...]\n", resp->id, resp->data_len); //, resp->data_len, resp->result);
+//    printf("caller p: %p, server p: %p\n", context->server, &server);
     act_response *act_resp = act_response_from_dubbo(resp);
     pa_server *server = (pa_server*)context->server;
     uv_buf_t *buf = (uv_buf_t*)malloc(sizeof(uv_buf_t) + FK);            // TODO free
@@ -120,7 +120,7 @@ void _dubbo_callback(dubbo_response *resp, stream_context *context) {
     uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t) + FK);
     w_req->data = buf;                                              // free the buf and buf->base
     int ret = uv_write(w_req, (uv_stream_t*)context->channel, buf, 1, act_write_cb);
-    printf("[_dubbo_callback]: write 1 buf to %p, ret: %d\n", context->channel, ret);
+//    printf("[_dubbo_callback]: write 1 buf to %p, ret: %d\n", context->channel, ret);
     if(ret) {
         printf("act write error: %s-%s\n", uv_err_name(ret), uv_strerror(ret));
     }
@@ -156,20 +156,20 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
             fprintf(stderr, "Read error %s\n", uv_err_name(nread));
         uv_close((uv_handle_t*) client, NULL);
     } else if (nread > 0) {
-        printf("[p_read_cb]: client p: %p, nread: %ld\n", client, nread);
+//        printf("[p_read_cb]: client p: %p, nread: %ld\n", client, nread);
         stream_context *context = (stream_context*)(client->data);
         pa_server *server = context->server;
         context->buf->write_idx += nread;
-        printf("[p_read_cb]: add widx to %d, %d\n", context->buf->write_idx, context->buf->size);
+//        printf("[p_read_cb]: add widx to %d, %d\n", context->buf->write_idx, context->buf->size);
         byte_buf_t *buf = context->buf;
         while(buf->read_idx < buf->write_idx) {
-            printf("[p_read_cb]: in turn: ridx: %d, widx: %d, hs: %d, bs: %d, hh: %d\n", buf->read_idx, buf->write_idx, context->header_state, context->body_state, context->has_header);
+//            printf("[p_read_cb]: in turn: ridx: %d, widx: %d, hs: %d, bs: %d, hh: %d\n", buf->read_idx, buf->write_idx, context->header_state, context->body_state, context->has_header);
             if(!context->has_header){
                 // read head
                 if(context->header_state == 0) {
                     if(buf->write_idx - buf->read_idx >= 2) {
                         if ((buf->buf[buf->read_idx] & 0xff) == 0xab && (buf->buf[buf->read_idx + 1] & 0xff) == 0xcd) {
-                            printf("read act magic number success!\n");
+//                            printf("read act magic number success!\n");
                             buf->read_idx += 2;
                             context->header_state++;
                         }
@@ -257,7 +257,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
                     }
                 }
                 if(context->body_state == 2) {
-                    printf("[p_read_cb]: need to read p_len: %d\n", context->act.p_len);
+//                    printf("[p_read_cb]: need to read p_len: %d\n", context->act.p_len);
                     if(buf->write_idx - buf->read_idx >= context->act.p_len) {
                         context->act.parameter = (char *) malloc(context->act.p_len + FK);                   // TODO free 0
                         strncpy(context->act.parameter, buf->buf + buf->read_idx, context->act.p_len);
@@ -267,11 +267,11 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
                         context->act.interface_len = context->_interface_len;
                         context->act.method = context->method;
                         context->act.method_len = context->method_len;
-                        printf("method len: %d\n", context->method_len);
+//                        printf("method len: %d\n", context->method_len);
                         context->act.parameter_types_string = context->pts;
                         context->act.pts_len = context->pts_len;
-                        printf("act Id: %d, ridx: %d, widx: %d, size: %d  args: [...]\n", context->act.id,
-                               buf->read_idx, buf->write_idx, buf->size);
+//                        printf("act Id: %d, ridx: %d, widx: %d, size: %d  args: [...]\n", context->act.id,
+//                               buf->read_idx, buf->write_idx, buf->size);
                         // context->act.p_len, context->act.parameter);
                         dubbo_fetch(server->dubbo_client, dubbo_request_from_act(&context->act), &_dubbo_callback,
                                     context);
@@ -286,12 +286,12 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
 }
 
 void on_conn(uv_stream_t *server, int status){
-    printf("[conn] server p: %p\n", server);
+//    printf("[conn] server p: %p\n", server);
     if(status < 0){
         printf("New conn error!");
     }
     uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t) + FK);                 // TODO free
-    printf("malloc client p: [%p]\n", client);
+//    printf("malloc client p: [%p]\n", client);
     client->data = create_pa_context((pa_server*)server->data, client);
     uv_tcp_init(&io_loop, client);
     if(uv_accept(server, (uv_stream_t*) client) == 0) {
