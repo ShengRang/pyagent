@@ -62,12 +62,14 @@ COPY --from=builder /root/dists/uv/* /root/dists/uv/
 
 COPY start-agent.sh /usr/local/bin
 
+RUN apt-get update && apt-get install -y llvm clang
+
 RUN set -ex \
  && chmod a+x /usr/local/bin/start-agent.sh \
  && mkdir -p /root/logs
 
 WORKDIR /root/dists/uv
-RUN g++ -fpermissive pa.cc utils.cc dubbo_client.cc bytebuf.cc -luv -o /root/dists/a.out
+RUN clang++ pa.cc utils.cc dubbo_client.cc bytebuf.cc -luv -o /root/dists/a.out
 
 EXPOSE 8087
 
