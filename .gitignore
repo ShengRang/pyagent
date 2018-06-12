@@ -110,4 +110,6 @@ db.sqlite3
 
 dists/
 
+*.dSYM/
+
 migrations/

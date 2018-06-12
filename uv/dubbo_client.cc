@@ -12,6 +12,13 @@
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
+#define FK 0
+
+typedef struct dubbo_encode_wcb_context{
+    uv_buf_t *bufs;
+    int bcnt;
+}dubbo_encode_wcb_context;
+
 uv_buf_t dubbo_request_encode(dubbo_request *request) {
     // int dubbo_version_len = strlen(request->dubbo_version);
     int dubbo_version_len = request->dubbo_version_len;
@@ -27,7 +34,7 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
     int f_len = 69;
     int total_len = 4 + 8 + 4 + (dubbo_version_len + 1) + (interface_name_len + 1) + 5 + (parameter_types_string_len + 1)
                     + (args_len + 1) + (f_len) + 10 + (method_name_len + 1);
-    char *buffer = (char*)malloc(total_len);
+    char *buffer = (char*)malloc(total_len);                        // TODO: free
     printf("%d, %d, %d, %d, %d, %d\n", dubbo_version_len, interface_name_len, method_name_len, parameter_types_string_len, args_len, f_len);
     printf("[dubbo encode]: total len: %d\n", total_len);
     int pos = 0;
@@ -70,7 +77,7 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
     buffer[pos++] = '"';
     buffer[pos++] = '\n';
 
-    strcpy(buffer+pos, "{\"path\":\"com.alibaba.dubbo.performance.demo.provider.IHelloService\"}\n");
+    strncpy(buffer+pos, "{\"path\":\"com.alibaba.dubbo.performance.demo.provider.IHelloService\"}\n", 69);
     uv_buf_t res = uv_buf_init(buffer, total_len);
 
     printf("[dubbo_encode]: ");
@@ -82,11 +89,36 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
 }
 
 void dubbo_write_cb(uv_write_t* req, int status) {
+    dubbo_encode_wcb_context *ctx = (dubbo_encode_wcb_context*)req->data;
+    for(int i=0; i<ctx->bcnt; i++) {
+        printf("[dubbo_write_cb]: free ctx->bufs[%d].base: %p\n", i, ctx->bufs[i].base);
+        free(ctx->bufs[i].base);
+    }
+    printf("[dubbo_write_cb]: free ctx->bufs: %p\n", ctx->bufs);
+    free(ctx->bufs);
+    printf("[dubbo_write_cb]: free ctx: %p\n", ctx);
+    free(ctx);
     printf("[dubbo_write_cb]: status: %d\n", status);
     if(status) {
         fprintf(stderr, "write cb error %s\n", uv_strerror(status));
     }
+    printf("[dubbo_write_cb]: free write_req: %p\n", req);
     free(req);
+}
+
+void free_dubbo_request(dubbo_request *request) {
+//    printf("o i will free memory\n");
+//    printf("free inter: %p\n", request->interface_name);
+//    printf("free method: %p\n", request->method_name);
+//    printf("free pts: %p\n", request->parameter_types_string);
+    printf("free args: %p\n", request->args);
+    printf("free dubbo_request: %p\n", request);
+//    free(request->interface_name);
+//    free(request->method_name);
+//    free(request->parameter_types_string);
+    free(request->args);
+    free(request);
+//    printf("finish free\n");
 }
 
 void handle_queue(dubbo_client *client) {
@@ -94,17 +126,22 @@ void handle_queue(dubbo_client *client) {
         printf("[handle_queue]: connection not ready\n");
         return;
     }
-    uv_buf_t *bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t)*client->queue.size());
+    uv_buf_t *bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t)*client->queue.size() + FK);      // TODO: free bufs
     int bcnt = 0;
     while(!client->queue.empty()) {
         dubbo_request *dreq = client->queue.front(); client->queue.pop();
         bufs[bcnt++] = dubbo_request_encode(dreq);                              // TODO: 回收内存
+        // free_dubbo_request(dreq);
     }
     if(bcnt <= 0) {
         printf("bcnt <= 0, break\n");
+        free(bufs);
         return;
     }
-    uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+    uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t) + FK);
+    dubbo_encode_wcb_context* ctx = (dubbo_encode_wcb_context *)malloc(sizeof(dubbo_encode_wcb_context) + FK);
+    ctx->bufs = bufs; ctx->bcnt = bcnt;
+    w_req->data = ctx;
     int ret = uv_write(w_req, (uv_stream_t*) &(client->socket), bufs, bcnt, dubbo_write_cb);
     printf("dubbo write %d bufs to client->socket, ret: %d\n", bcnt, ret);
     if(ret) {
@@ -118,6 +155,7 @@ void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
     if(client->buf){
        remain = client->buf->size - client->buf->write_idx;
     }
+//    suggested_size = 2048;
     if(remain < suggested_size/3) {
         printf("[d_alloc_cb]: no enough buffer, alloc new and push old, buf_pool size: %d\n", client->buf_pool.bufs.size());
         byte_buf_t *new_buf = pool_malloc(&client->buf_pool, suggested_size);
@@ -152,6 +190,7 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
     printf("[d_read_cb]: add write idx to %d\n", client->buf->write_idx);
     byte_buf_t *buf = client->buf;
     while(buf->read_idx < buf->write_idx) {
+        printf("[d_read_cb]: d_while ridx: %d, widx: %d, state: %d\n", buf->read_idx, buf->write_idx, client->read_state);
         if(client->read_state == 0) {
             if(buf->write_idx - buf->read_idx >= 4) {
                 if ((buf->buf[buf->read_idx] & 0xff) == 0xda && (buf->buf[buf->read_idx + 1] & 0xff) == 0xbb) {
@@ -185,8 +224,9 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
             }
         }
         if(client->read_state == 3) {
+            printf("[d_read_cb]: need data_len: %d\n", client->dubbo_resp.data_len);
             if (buf->write_idx - buf->read_idx >= client->dubbo_resp.data_len) {
-                client->dubbo_resp.result = (char *) malloc(client->dubbo_resp.data_len);
+                client->dubbo_resp.result = (char *) malloc(client->dubbo_resp.data_len + FK);                       // TODO free
                 strncpy(client->dubbo_resp.result, buf->buf + buf->read_idx, client->dubbo_resp.data_len);
                 printf("get dubbo result: [...]\n"); //, client->dubbo_resp.result); // %s 危险.
                 buf->read_idx += client->dubbo_resp.data_len;
@@ -200,6 +240,7 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
             }
         }
     }
+    printf("[d_read_cb]: b_leave, r: %d, w: %d\n", buf->read_idx, buf->write_idx);
     return;
 }
 
