@@ -145,7 +145,7 @@ if __name__ == '__main__':
 #     sockets = tornado.netutil.bind_sockets(options.port)
 #     server.add_sockets(sockets)
     server.bind(options.port, backlog=2048)
-    server.start(0)
+    server.start()
     random.seed(os.getpid())
     tornado.ioloop.IOLoop.current().start()
 #     tornado.ioloop.IOLoop.instance().start()

@@ -31,7 +31,7 @@ class PAClient(object):
         if key in self.conns:
             conn = self.conns[key]
         else:
-            gen_log.info("key {0} not in client, create one".format(key))
+            # gen_log.info("key {0} not in client, create one".format(key))
             conn = PAConnection(self.host, self.port, self.io_loop, key)
             self.conns[key] = conn
         conn.fetch(act_request, callback)
@@ -72,17 +72,17 @@ class PAConnection(object):
         self.stream.set_nodelay(True)
         self.stream.set_close_callback(self._on_close)
         sockaddr = addrinfo[0][1]
-        gen_log.info("sock addr {0}".format(sockaddr))
+        # gen_log.info("sock addr {0}".format(sockaddr))
         self.stream.connect(sockaddr, self._on_connect)
 
     def _on_close(self):
         gen_log.info("pa conn close")
 
     def _on_connect(self):
-        gen_log.info("start conn to pa")
+        # gen_log.info("start conn to pa")
         self._connected = True
         self.stream.write('\xab\xcd')               # magic number of act protocol
-        gen_log.info('write data {0}'.format(repr(encode_act_key(self.key))))
+        # gen_log.info('write data {0}'.format(repr(encode_act_key(self.key))))
         self.stream.write(encode_act_key(self.key))
         self._process_queue()
         self.stream.read_bytes(4, self._on_id)
@@ -102,8 +102,8 @@ class PAConnection(object):
         resp.result = data
         cb = self._callbacks[resp.Id]
         t = time.time()
-        gen_log.info(
-            "ActID[{0}]: {1}, {2}, {3}, {4}, {5}, {6}, {7}".format(resp.Id, self.prof[resp.Id][0], self.prof[resp.Id][1], self.prof[resp.Id][2], t, self.prof[resp.Id][1]-self.prof[resp.Id][0], self.prof[resp.Id][2]-self.prof[resp.Id][0], t-self.prof[resp.Id][0]))
+        # gen_log.info(
+        #     "ActID[{0}]: {1}, {2}, {3}, {4}, {5}, {6}, {7}".format(resp.Id, self.prof[resp.Id][0], self.prof[resp.Id][1], self.prof[resp.Id][2], t, self.prof[resp.Id][1]-self.prof[resp.Id][0], self.prof[resp.Id][2]-self.prof[resp.Id][0], t-self.prof[resp.Id][0]))
         del self.prof[resp.Id]
         del self._callbacks[resp.Id]
         # self.io_loop.add_callback(cb, resp)
@@ -120,7 +120,7 @@ class PAConnection(object):
 
     def _process_queue(self):
         if not self._connected:
-            gen_log.info("act connection not ready, wait an other turn")
+            # gen_log.info("act connection not ready, wait an other turn")
             return
         with stack_context.NullContext():
             while self.queue:

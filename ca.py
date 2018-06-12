@@ -44,7 +44,7 @@ class EndPoints(object):
         for i, v in enumerate(rate):
             if i > 0:
                 rate[i] = rate[i-1] + rate[i]
-        gen_log.info('the rate: {0}'.format(rate))
+        # gen_log.info('the rate: {0}'.format(rate))
         self.rate = rate
         self.prev = 0
         self.max_sum = self.rate[-1]
@@ -54,7 +54,7 @@ class EndPoints(object):
         # return random.choice(self.end_points)[:2]
         idx = bisect.bisect_left(self.rate, self.prev+1)
         self.cnt_map[idx] += 1
-        gen_log.info("cnt_map: {0}".format(self.cnt_map))
+        # gen_log.info("cnt_map: {0}".format(self.cnt_map))
         res = self.end_points[idx][:2]
         self.prev = (self.prev + 1) % self.max_sum
         return res
@@ -72,12 +72,12 @@ class IndexHandler(tornado.web.RequestHandler):
         # self.finish()
         # return
         host, port = end_points.choice()
-        gen_log.info('chose {0}:{1}'.format(host, port))
+        # gen_log.info('chose {0}:{1}'.format(host, port))
         if host in IndexHandler.pa_client_map:
             client = IndexHandler.pa_client_map[host]
         else:
-            print host, port, 'not in the pa_client_map'
-            gen_log.info('{0}:{1} not in pa_client_map'.format(host, port))
+            # print host, port, 'not in the pa_client_map'
+            # gen_log.info('{0}:{1} not in pa_client_map'.format(host, port))
             # clients = [PAClient(host, port) for _ in range(4)]
             client = PAClient(host, port)
             IndexHandler.pa_client_map[host] = client
@@ -90,7 +90,7 @@ class IndexHandler(tornado.web.RequestHandler):
         request.method = self.get_argument('method').encode('utf-8')
         request.parameter_types_string = self.get_argument('parameterTypesString').encode('utf-8')
         request.parameter = self.get_argument('parameter').encode('utf-8')
-        gen_log.info("Id: {0}, arg: {1}".format(request.Id, request.parameter))
+        # gen_log.info("Id: {0}, arg: {1}".format(request.Id, request.parameter))
         client.fetch(request, self._callback)
 
     def _callback(self, act_response):
