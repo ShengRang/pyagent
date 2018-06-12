@@ -76,7 +76,7 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
     printf("[dubbo_encode]: ");
     for(int i=0; i<16; i++)
         printf("%x ", buffer[i] & 0xff);
-    printf("next: [%.*s]\n", total_len-16, buffer+16);
+    // printf("next: [%.*s]\n", total_len-16, buffer+16);
 
     return res;
 }
@@ -128,14 +128,14 @@ void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
             printf("[d_alloc_cb]: will copy %d bytes\n", wi-ri);
             for(int i=ri; i<wi; i++) {
                 new_buf->buf[i-ri] = client->buf->buf[i];
-                new_buf->read_idx++;
+                new_buf->write_idx++;
             }
             pool_free(&client->buf_pool, client->buf);
         }
         client->buf = new_buf;
     }
     buf->base = client->buf->buf + client->buf->write_idx;
-    buf->len = client->buf->size - client->buf->write_idx - 1;
+    buf->len = client->buf->size - client->buf->write_idx;
 }
 
 
@@ -152,34 +152,52 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
     printf("[d_read_cb]: add write idx to %d\n", client->buf->write_idx);
     byte_buf_t *buf = client->buf;
     while(buf->read_idx < buf->write_idx) {
-        if(client->read_state == 0 && buf->write_idx - buf->read_idx >= 4) {
-            if((buf->buf[buf->read_idx] & 0xff) == 0xda && (buf->buf[buf->read_idx+1] & 0xff) == 0xbb) {
-                buf->read_idx += 4;
-                client->read_state = (client->read_state + 1);
-                printf("[d_read_cb]: get header, status: %x %x\n", buf->buf[buf->read_idx-4+2] &0xff, buf->buf[buf->read_idx-4+3] &0xff);
+        if(client->read_state == 0) {
+            if(buf->write_idx - buf->read_idx >= 4) {
+                if ((buf->buf[buf->read_idx] & 0xff) == 0xda && (buf->buf[buf->read_idx + 1] & 0xff) == 0xbb) {
+                    buf->read_idx += 4;
+                    client->read_state = (client->read_state + 1);
+                    printf("[d_read_cb]: get header, status: %x %x\n", buf->buf[buf->read_idx - 4 + 2] & 0xff,
+                           buf->buf[buf->read_idx - 4 + 3] & 0xff);
+                }
+            } else {
+                break;
             }
         }
-        if(client->read_state == 1 && buf->write_idx - buf->read_idx >= 8) {
-            client->dubbo_resp.id = bytes2ll(buf->buf + buf->read_idx);
-            buf->read_idx += 8;
-            client->read_state = (client->read_state + 1);
-            printf("[d_read_cb]get dubbo resp id: %lld\n", client->dubbo_resp.id);
+        if(client->read_state == 1) {
+            if (buf->write_idx - buf->read_idx >= 8) {
+                client->dubbo_resp.id = bytes2ll(buf->buf + buf->read_idx);
+                buf->read_idx += 8;
+                client->read_state = (client->read_state + 1);
+                printf("[d_read_cb]get dubbo resp id: %lld\n", client->dubbo_resp.id);
+            } else {
+                break;
+            }
         }
-        if(client->read_state == 2 && buf->write_idx - buf->read_idx >= 4) {
-            client->dubbo_resp.data_len = bytes2int(buf->buf + buf->read_idx);
-            buf->read_idx += 4;
-            client->read_state = (client->read_state + 1);
-            printf("[d_read_cb]: get dubbo data len: %d\n", client->dubbo_resp.data_len);
+        if(client->read_state == 2) {
+            if (buf->write_idx - buf->read_idx >= 4) {
+                client->dubbo_resp.data_len = bytes2int(buf->buf + buf->read_idx);
+                buf->read_idx += 4;
+                client->read_state = (client->read_state + 1);
+                printf("[d_read_cb]: get dubbo data len: %d\n", client->dubbo_resp.data_len);
+            } else {
+                break;
+            }
         }
-        if(client->read_state == 3 && buf->write_idx - buf->read_idx >= client->dubbo_resp.data_len) {
-            client->dubbo_resp.result = (char*)malloc(client->dubbo_resp.data_len);
-            strncpy(client->dubbo_resp.result, buf->buf + buf->read_idx, client->dubbo_resp.data_len);
-            printf("get dubbo result: [%s]\n", client->dubbo_resp.result);
-            buf->read_idx += client->dubbo_resp.data_len;
-            client->read_state = 0;
-            (*client->cbs[client->dubbo_resp.id])(&client->dubbo_resp, (client->contexts[client->dubbo_resp.id]));             // result的内存自行free
-            client->cbs.erase(client->cbs.find(client->dubbo_resp.id));
-            client->contexts.erase(client->contexts.find(client->dubbo_resp.id));
+        if(client->read_state == 3) {
+            if (buf->write_idx - buf->read_idx >= client->dubbo_resp.data_len) {
+                client->dubbo_resp.result = (char *) malloc(client->dubbo_resp.data_len);
+                strncpy(client->dubbo_resp.result, buf->buf + buf->read_idx, client->dubbo_resp.data_len);
+                printf("get dubbo result: [...]\n"); //, client->dubbo_resp.result); // %s 危险.
+                buf->read_idx += client->dubbo_resp.data_len;
+                client->read_state = 0;
+                (*client->cbs[client->dubbo_resp.id])(&client->dubbo_resp,
+                                                      (client->contexts[client->dubbo_resp.id]));             // result的内存自行free
+                client->cbs.erase(client->cbs.find(client->dubbo_resp.id));
+                client->contexts.erase(client->contexts.find(client->dubbo_resp.id));
+            } else {
+                break;
+            }
         }
     }
     return;

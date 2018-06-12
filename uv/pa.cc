@@ -44,14 +44,14 @@ void _p_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
             printf("will copy %d bytes\n", wi-ri);
             for(int i=ri; i<wi; i++) {
                 new_buf->buf[i-ri] = context->buf->buf[i];
-                new_buf->read_idx++;
+                new_buf->write_idx++;
             }
             pool_free(&server->buf_pool, context->buf);
         }
         context->buf = new_buf;
     }
     buf->base = context->buf->buf + context->buf->write_idx;
-    buf->len = context->buf->size - context->buf->write_idx - 1;
+    buf->len = context->buf->size - context->buf->write_idx;
 //    printf("[alloc]: finish cb\n");
 }
 
@@ -85,7 +85,7 @@ char* encode_act_response(act_response *resp) {
 }
 
 void _dubbo_callback(dubbo_response *resp, stream_context *context) {
-    printf("[test cb]: get resp id: %lld, data len: %d, data: [%.*s]\n", resp->id, resp->data_len, resp->data_len, resp->result);
+    printf("[test cb]: get resp id: %lld, data len: %d, data: [...]\n", resp->id, resp->data_len); //, resp->data_len, resp->result);
     printf("caller p: %p, server p: %p\n", context->server, &server);
     act_response *act_resp = act_response_from_dubbo(resp);
     pa_server *server = (pa_server*)context->server;
@@ -137,81 +137,125 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
         printf("[p_read_cb]: add widx to %d, %d\n", context->buf->write_idx, context->buf->size);
         byte_buf_t *buf = context->buf;
         while(buf->read_idx < buf->write_idx) {
+            printf("[p_read_cb]: in turn: ridx: %d, widx: %d, hs: %d, bs: %d, hh: %d\n", buf->read_idx, buf->write_idx, context->header_state, context->body_state, context->has_header);
             if(!context->has_header){
                 // read head
-                if(context->header_state == 0 && buf->write_idx - buf->read_idx >= 2) {
-                    if((buf->buf[buf->read_idx] & 0xff) == 0xab && (buf->buf[buf->read_idx+1] & 0xff) == 0xcd) {
-                        printf("read act magic number success!\n");
-                        buf->read_idx += 2;
-                        context->header_state++;
+                if(context->header_state == 0) {
+                    if(buf->write_idx - buf->read_idx >= 2) {
+                        if ((buf->buf[buf->read_idx] & 0xff) == 0xab && (buf->buf[buf->read_idx + 1] & 0xff) == 0xcd) {
+                            printf("read act magic number success!\n");
+                            buf->read_idx += 2;
+                            context->header_state++;
+                        }
+                    } else {
+                        break;
                     }
                 }
-                if(context->header_state == 1 && buf->write_idx - buf->read_idx >= 4) {
-                    context->_interface_len = bytes2int(buf->buf + buf->read_idx);
-                    buf->read_idx += 4;
-                    context->header_state++;
+                if(context->header_state == 1) {
+                    if(buf->write_idx - buf->read_idx >= 4) {
+                        context->_interface_len = bytes2int(buf->buf + buf->read_idx);
+                        buf->read_idx += 4;
+                        context->header_state++;
+                    } else {
+                        break;
+                    }
                 }
-                if(context->header_state == 2 && buf->write_idx - buf->read_idx >= context->_interface_len) {
+                if(context->header_state == 2) {
                     // 注意并没有字符串的尾0
-                    context->_interface = (char*)malloc(sizeof(char)*context->_interface_len);
-                    strncpy(context->_interface, buf->buf + buf->read_idx, context->_interface_len);
-                    buf->read_idx += context->_interface_len;
-                    context->header_state++;
+                    if (buf->write_idx - buf->read_idx >= context->_interface_len) {
+                        context->_interface = (char *) malloc(sizeof(char) * context->_interface_len);
+                        strncpy(context->_interface, buf->buf + buf->read_idx, context->_interface_len);
+                        buf->read_idx += context->_interface_len;
+                        context->header_state++;
+                    } else {
+                        break;
+                    }
                 }
-                if(context->header_state == 3 && buf->write_idx - buf->read_idx >= 4) {
-                    context->method_len = bytes2int(buf->buf + buf->read_idx);
-                    buf->read_idx += 4;
-                    context->header_state++;
+                if(context->header_state == 3) {
+                    if (buf->write_idx - buf->read_idx >= 4) {
+                        context->method_len = bytes2int(buf->buf + buf->read_idx);
+                        buf->read_idx += 4;
+                        context->header_state++;
+                    } else {
+                        break;
+                    }
                 }
-                if(context->header_state == 4 && buf->write_idx - buf->read_idx >= context->method_len) {
-                    context->method = (char*)malloc(context->method_len);
-                    strncpy(context->method, buf->buf + buf->read_idx, context->method_len);
-                    buf->read_idx += context->method_len;
-                    context->header_state++;
+                if(context->header_state == 4) {
+                    if (buf->write_idx - buf->read_idx >= context->method_len) {
+                        context->method = (char *) malloc(context->method_len);
+                        strncpy(context->method, buf->buf + buf->read_idx, context->method_len);
+                        buf->read_idx += context->method_len;
+                        context->header_state++;
+                    } else {
+                        break;
+                    }
                 }
-                if(context->header_state == 5 && buf->write_idx - buf->read_idx >= 4) {
-                    context->pts_len = bytes2int(buf->buf + buf->read_idx);
-                    buf->read_idx += 4;
-                    context->header_state++;
+                if(context->header_state == 5) {
+                    if(buf->write_idx - buf->read_idx >= 4) {
+                        context->pts_len = bytes2int(buf->buf + buf->read_idx);
+                        buf->read_idx += 4;
+                        context->header_state++;
+                    } else {
+                        break;
+                    }
                 }
-                if(context->header_state == 6 && buf->write_idx - buf->read_idx >= context->pts_len) {
-                    context->pts = (char*)malloc(context->pts_len);
-                    strncpy(context->pts, buf->buf + buf->read_idx, context->pts_len);
-                    buf->read_idx += context->pts_len;
-                    context->header_state++;
-                    context->has_header = 1;
+                if(context->header_state == 6) {
+                    if (buf->write_idx - buf->read_idx >= context->pts_len) {
+                        context->pts = (char *) malloc(context->pts_len);
+                        strncpy(context->pts, buf->buf + buf->read_idx, context->pts_len);
+                        buf->read_idx += context->pts_len;
+                        context->header_state++;
+                        context->has_header = 1;
+                    } else {
+                        break;
+                    }
                 }
             }
             if(context->has_header) {    // 相同信息已获取
-                if(context->body_state == 0 && buf->write_idx-buf->read_idx >= 4) {
-                    context->act.id = bytes2int(buf->buf + buf->read_idx);
-                    buf->read_idx += 4;
-                    context->body_state++;
+                if(context->body_state == 0) {
+                    if (buf->write_idx-buf->read_idx >= 4) {
+                        context->act.id = bytes2int(buf->buf + buf->read_idx);
+                        buf->read_idx += 4;
+                        context->body_state++;
+                    } else {
+                        break;
+                    }
                 }
-                if(context->body_state == 1 && buf->write_idx - buf->read_idx >= 4) {
-                    context->act.p_len = bytes2int(buf->buf + buf->read_idx);
-                    buf->read_idx += 4;
-                    context->body_state++;
+                if(context->body_state == 1) {
+                    if(buf->write_idx - buf->read_idx >= 4) {
+                        context->act.p_len = bytes2int(buf->buf + buf->read_idx);
+                        buf->read_idx += 4;
+                        context->body_state++;
+                    } else {
+                        break;
+                    }
                 }
-                if(context->body_state == 2 && buf->write_idx - buf->read_idx >= context->act.p_len) {
-                    context->act.parameter = (char*)malloc(context->act.p_len);
-                    strncpy(context->act.parameter, buf->buf + buf->read_idx, context->act.p_len);
-                    buf->read_idx += context->act.p_len;
-                    context->body_state = 0;
-                    context->act._interface = context->_interface;
-                    context->act.interface_len = context->_interface_len;
-                    context->act.method = context->method;
-                    context->act.method_len = context->method_len;
-                    printf("method len: %d\n", context->method_len);
-                    context->act.parameter_types_string = context->pts;
-                    context->act.pts_len = context->pts_len;
-                    printf("act Id: %d, ridx: %d, widx: %d, size: %d  args: [%.*s]\n", context->act.id, buf->read_idx, buf->write_idx, buf->size,
-                    context->act.p_len, context->act.parameter);
-                    dubbo_fetch(server->dubbo_client, dubbo_request_from_act(&context->act), &_dubbo_callback, context);
+                if(context->body_state == 2) {
+                    printf("[p_read_cb]: need to read p_len: %d\n", context->act.p_len);
+                    if(buf->write_idx - buf->read_idx >= context->act.p_len) {
+                        context->act.parameter = (char *) malloc(context->act.p_len);
+                        strncpy(context->act.parameter, buf->buf + buf->read_idx, context->act.p_len);
+                        buf->read_idx += context->act.p_len;
+                        context->body_state = 0;
+                        context->act._interface = context->_interface;
+                        context->act.interface_len = context->_interface_len;
+                        context->act.method = context->method;
+                        context->act.method_len = context->method_len;
+                        printf("method len: %d\n", context->method_len);
+                        context->act.parameter_types_string = context->pts;
+                        context->act.pts_len = context->pts_len;
+                        printf("act Id: %d, ridx: %d, widx: %d, size: %d  args: [...]\n", context->act.id,
+                               buf->read_idx, buf->write_idx, buf->size);
+                        // context->act.p_len, context->act.parameter);
+                        dubbo_fetch(server->dubbo_client, dubbo_request_from_act(&context->act), &_dubbo_callback,
+                                    context);
+                    } else {
+                        break;
+                    }
                 }
             }
         }
-        printf("[pa_on_read]: leave while\n");
+        printf("[pa_on_read]: leave while, ridx: %d, widx: %d\n", context->buf->read_idx, context->buf->write_idx);
     }
 }
 
