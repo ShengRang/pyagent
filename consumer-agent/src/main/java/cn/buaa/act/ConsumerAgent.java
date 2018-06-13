@@ -63,7 +63,7 @@ public class ConsumerAgent {
 //        });
         EtcdLB lb = new EtcdLB();
         Vertx vertx= Vertx.vertx();
-        DeploymentOptions dp = new DeploymentOptions().setInstances(Runtime.getRuntime().availableProcessors());
+        DeploymentOptions dp = new DeploymentOptions().setInstances(Runtime.getRuntime().availableProcessors() / 2);
 //        for(int i=0;i<8;i++){
 //            HttpServerVerticle httpServerVerticle = new HttpServerVerticle(lb);
             vertx.deployVerticle(HttpServerVerticle.class.getName(), dp);
