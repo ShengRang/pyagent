@@ -24,7 +24,7 @@ public class EtcdLB {
         return this.endpoints.size();
     }
 
-    EtcdLB() throws Exception {
+    public EtcdLB() throws Exception {
         this.endpoints = new ArrayList<>();
         this.rate = new ArrayList<>();
         this.host_value = new HashMap<>();

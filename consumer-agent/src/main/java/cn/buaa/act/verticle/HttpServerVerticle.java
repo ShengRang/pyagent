@@ -46,7 +46,9 @@ public class HttpServerVerticle extends AbstractVerticle {
     public HttpServerVerticle(EtcdLB lb){
         this.lb = lb;
     }
-    public HttpServerVerticle(){}
+    public HttpServerVerticle() throws Exception{
+        this.lb = new EtcdLB();
+    }
 
 
     public Map<Integer,HttpServerResponse> responseMap =new HashMap<>();

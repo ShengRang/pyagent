@@ -9,6 +9,7 @@ import com.coreos.jetcd.Client;
 import com.coreos.jetcd.KV;
 import com.coreos.jetcd.data.ByteSequence;
 import com.coreos.jetcd.kv.GetResponse;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -62,15 +63,10 @@ public class ConsumerAgent {
 //        });
         EtcdLB lb = new EtcdLB();
         Vertx vertx= Vertx.vertx();
-        for(int i=0;i<8;i++){
-            HttpServerVerticle httpServerVerticle = new HttpServerVerticle(lb);
-            vertx.deployVerticle(httpServerVerticle,ar -> {
-                if (ar.succeeded()) {
-
-                } else {
-                    Future.failedFuture(ar.cause());
-                }
-            });
-        }
+        DeploymentOptions dp = new DeploymentOptions().setInstances(Runtime.getRuntime().availableProcessors());
+//        for(int i=0;i<8;i++){
+//            HttpServerVerticle httpServerVerticle = new HttpServerVerticle(lb);
+            vertx.deployVerticle(HttpServerVerticle.class.getName(), dp);
+//        }
     }
 }
