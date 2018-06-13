@@ -61,14 +61,16 @@ public class ConsumerAgent {
 //            }
 //        });
         EtcdLB lb = new EtcdLB();
-        HttpServerVerticle httpServerVerticle = new HttpServerVerticle(lb);
         Vertx vertx= Vertx.vertx();
-        vertx.deployVerticle(httpServerVerticle,ar -> {
-            if (ar.succeeded()) {
+        for(int i=0;i<8;i++){
+            HttpServerVerticle httpServerVerticle = new HttpServerVerticle(lb);
+            vertx.deployVerticle(httpServerVerticle,ar -> {
+                if (ar.succeeded()) {
 
-            } else {
-                Future.failedFuture(ar.cause());
-            }
-        });
+                } else {
+                    Future.failedFuture(ar.cause());
+                }
+            });
+        }
     }
 }
