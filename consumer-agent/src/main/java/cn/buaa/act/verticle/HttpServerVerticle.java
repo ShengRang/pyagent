@@ -1,7 +1,9 @@
 package cn.buaa.act.verticle;
 
 import cn.buaa.act.EtcdLB;
+import cn.buaa.act.Parser.FrameParser;
 import cn.buaa.act.model.ActRequest;
+import cn.buaa.act.model.ActResponse;
 import cn.buaa.act.registry.Endpoint;
 import cn.buaa.act.registry.IRegistry;
 import io.vertx.core.AbstractVerticle;
@@ -9,6 +11,8 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.net.NetClient;
+import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -43,26 +47,71 @@ public class HttpServerVerticle extends AbstractVerticle {
         this.lb = lb;
     }
     public HttpServerVerticle(){}
+
+
+    public Map<Integer,HttpServerResponse> responseMap =new HashMap<>();
+    private Future<Void> writeHttpResponse(ActResponse actResponse) {
+        Future<Void> fu = Future.future();
+        String [] resultArray= actResponse.result.split("\n");
+        HttpServerResponse httpServerResponse= responseMap.get(actResponse.apid);
+        httpServerResponse.end(String.valueOf(resultArray[1]));
+        fu.complete();
+        return fu;
+    }
+    private Future<NetSocket> createClient(NetClientOptions options, int port, String host) {
+        Future<NetSocket> createClientFuture = Future.future();
+        NetClient client = vertx.createNetClient(options);
+        client.connect(port,host,res -> {
+            if (res.succeeded()) {
+                System.out.println(host+"Connected!");
+                NetSocket socket = res.result();
+                socket.handler(new FrameParser(fres -> {
+                    if (fres.failed()) {
+                        System.out.println(fres.cause());
+                        return;
+                    }
+                    else {
+                        ActResponse object = (ActResponse)fres.result();
+                        writeHttpResponse(object);
+                    }
+                }));
+                createClientFuture.complete(socket);
+            } else {
+                System.out.println("Failed to connect: " + res.cause().getMessage());
+            }
+        });
+        return createClientFuture;
+    }
+
     private Future<Void> createServer(){
         Future<Void> createServerFuture = Future.future();
         HttpServer server = vertx.createHttpServer();
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
         //!!!!随机数
-        Map<String,TcpClientVerticle> paMap=new HashMap<>();
+        Map<String,NetSocket> paMap=new HashMap<>();
         Map<String,Boolean> paFirst = new HashMap<>();
         if(paMap.size()==0){
             for(int i=0;i<lb.endpoints.size();i++){
 
-//                Endpoint ep = endpoints.get(0);
                 final String key = lb.endpoints.get(i).getKey();
-                TcpClientVerticle tcpClientVerticle =new TcpClientVerticle(lb.endpoints.get(i).getValue(),key,1);
-                vertx.deployVerticle(tcpClientVerticle,ar -> {
-                    if (ar.succeeded()) {
-                        paMap.put(key,tcpClientVerticle);
+                //TcpClientVerticle tcpClientVerticle =new TcpClientVerticle(lb.endpoints.get(i).getValue(),key,1);
+//                vertx.deployVerticle(tcpClientVerticle,ar -> {
+//                    if (ar.succeeded()) {
+//                        paMap.put(key,tcpClientVerticle);
+//                        paFirst.put(key,true);
+//                    } else {
+//                        Future.failedFuture(ar.cause());
+//                    }
+//                });
+                createClient(new NetClientOptions(),lb.endpoints.get(i).getValue(),key).setHandler(ar -> {
+                    if (ar.failed()) {
+                        Throwable cause = ar.cause();
+                        Future.failedFuture(cause);
+                    }
+                    else {
+                        paMap.put(key,ar.result());
                         paFirst.put(key,true);
-                    } else {
-                        Future.failedFuture(ar.cause());
                     }
                 });
             }
@@ -94,15 +143,13 @@ public class HttpServerVerticle extends AbstractVerticle {
                     header.appendInt(actRequest.Interface.length()).appendString(actRequest.Interface);
                     header.appendInt(actRequest.Method.length()).appendString(actRequest.Method);
                     header.appendInt(actRequest.ParameterTypesString.length()).appendString(actRequest.ParameterTypesString);
-//                    header.appendBuffer(buffer);
-                    paMap.get(select).responseMap.put(actRequest.apid,response);
-                    paMap.get(select).netSocket.write(header);
-                    paMap.get(select).netSocket.write(buffer);
+                    responseMap.put(actRequest.apid,response);
+                    paMap.get(select).write(header);
+                    paMap.get(select).write(buffer);
                 }
                 else {
-                    paMap.get(select).responseMap.put(actRequest.apid,response);
-//                    System.out.println("write act request: " + actRequest.apid + " ");
-                    paMap.get(select).netSocket.write(buffer);
+                    responseMap.put(actRequest.apid,response);
+                    paMap.get(select).write(buffer);
                 }
             //tcpClientVerticle.responseMap.put(actRequest.apid,response);
             //tcpClientVerticle.netSocketList.get(random.nextInt(3)).write(buffer);
