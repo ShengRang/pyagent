@@ -316,7 +316,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
                 }
             }
         }
-        printf("[pa_on_read]: leave while, ridx: %d, widx: %d\n", context->buf->read_idx, context->buf->write_idx);
+//        printf("[pa_on_read]: leave while, ridx: %d, widx: %d\n", context->buf->read_idx, context->buf->write_idx);
     }
 }
 
