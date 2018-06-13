@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/time.h>
+#include <map>
 
 #include "dubbo_client.h"
 #include "bytebuf.h"
@@ -15,6 +17,14 @@
 
 uv_loop_t io_loop;
 pa_server server;
+
+std::map<int, long long> recv_act_ts_map;
+
+long long current_ts() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000000LL + tv.tv_usec;
+}
 
 stream_context *create_pa_context(pa_server *server, uv_tcp_t *channel) {
     stream_context *res = (stream_context*)malloc(sizeof(stream_context) + FK);
@@ -66,8 +76,22 @@ act_response* act_response_from_dubbo(dubbo_response *dubbo_resp){
     return res;
 }
 
+typedef struct act_write_context{
+    uv_buf_t *buf;
+    int id;
+    long long read_act_ts;
+//    long long start_dubbo_ts;
+//    long long end_dubbo_ts;
+    long long start_act_write_ts;
+    long long finish_act_write_ts;
+}act_write_context;
+
 void act_write_cb(uv_write_t* req, int status) {
-    uv_buf_t *buf = (uv_buf_t*)req->data;
+    act_write_context *ctx = (act_write_context*)req->data;
+    ctx->finish_act_write_ts = current_ts();
+    printf("[time_info]: %d %lld %lld %lld\n", ctx->id, ctx->read_act_ts, ctx->start_act_write_ts, ctx->finish_act_write_ts);
+    uv_buf_t *buf = ctx->buf;
+//    uv_buf_t *buf = (uv_buf_t*)req->data;
 //    printf("[act_write_cb]: free buf->base: %p\n", buf->base);
 //    printf("[act_write_cb]: free buf: %p\n", buf);
     free(buf->base);
@@ -79,6 +103,7 @@ void act_write_cb(uv_write_t* req, int status) {
     }
 //    printf("[act_write_cb]: free write req: %p\n", req);
     free(req);
+    free(ctx);
 }
 
 int act_response_data_length(act_response *resp) {
@@ -119,6 +144,14 @@ void _dubbo_callback(dubbo_response *resp, stream_context *context) {
     free_act_response(act_resp);
     uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t) + FK);
     w_req->data = buf;                                              // free the buf and buf->base
+
+    act_write_context *actx = (act_write_context*)malloc(sizeof(act_write_context) + FK);
+    actx->buf = buf;
+    actx->id = resp->id;
+    actx->start_act_write_ts = current_ts();
+    actx->read_act_ts = recv_act_ts_map[resp->id];
+    w_req->data = actx;
+
     int ret = uv_write(w_req, (uv_stream_t*)context->channel, buf, 1, act_write_cb);
 //    printf("[_dubbo_callback]: write 1 buf to %p, ret: %d\n", context->channel, ret);
     if(ret) {
@@ -270,9 +303,11 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
 //                        printf("method len: %d\n", context->method_len);
                         context->act.parameter_types_string = context->pts;
                         context->act.pts_len = context->pts_len;
+                        recv_act_ts_map[context->act.id] = current_ts();
 //                        printf("act Id: %d, ridx: %d, widx: %d, size: %d  args: [...]\n", context->act.id,
 //                               buf->read_idx, buf->write_idx, buf->size);
                         // context->act.p_len, context->act.parameter);
+
                         dubbo_fetch(server->dubbo_client, dubbo_request_from_act(&context->act), &_dubbo_callback,
                                     context);
                     } else {
