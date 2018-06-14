@@ -74,12 +74,12 @@ public class FrameParser implements Handler<Buffer> {
       _offset = 0;
       return;
     }
-
-    if (_offset > 0) {
-      _buffer = _buffer.getBuffer(_offset, _buffer.length());
-    }
     _buffer.appendBuffer(newBuffer);
-    _offset = 0;
+//    if (_offset > 0) {
+//      _buffer = _buffer.getBuffer(_offset, _buffer.length());
+//    }
+//    _buffer.appendBuffer(newBuffer);
+//    _offset = 0;
   }
 
   private int bytesRemaining() {
