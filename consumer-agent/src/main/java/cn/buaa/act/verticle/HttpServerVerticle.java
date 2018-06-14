@@ -52,13 +52,10 @@ public class HttpServerVerticle extends AbstractVerticle {
 
 
     public Map<Integer,HttpServerResponse> responseMap =new HashMap<>();
-    private Future<Void> writeHttpResponse(ActResponse actResponse) {
-        Future<Void> fu = Future.future();
-        String [] resultArray= actResponse.result.split("\n");
-        HttpServerResponse httpServerResponse= responseMap.get(actResponse.apid);
-        httpServerResponse.end(String.valueOf(resultArray[1]));
-        fu.complete();
-        return fu;
+    private void writeHttpResponse(ActResponse actResponse) {
+        StringTokenizer st = new StringTokenizer(actResponse.result);
+        st.nextToken();
+        responseMap.get(actResponse.apid).end(String.valueOf(st.nextToken()));
     }
     private Future<NetSocket> createClient(NetClientOptions options, int port, String host) {
         Future<NetSocket> createClientFuture = Future.future();
@@ -118,17 +115,19 @@ public class HttpServerVerticle extends AbstractVerticle {
                 });
             }
         }
+        ActRequest actRequest = new ActRequest();
+        Random random1= new Random(Thread.currentThread().getId());
         router.route().handler(routingContext -> {
-                ActRequest actRequest = new ActRequest();
-
+                actRequest.apid = random1.nextInt();
                 // System.out.println(actRequest.apid);
                 actRequest.Interface = routingContext.request().getFormAttribute("interface");
                 actRequest.Method = routingContext.request().getFormAttribute("method");
                 actRequest.ParameterTypesString = routingContext.request().getFormAttribute("parameterTypesString");
 
-                Buffer buffer = Buffer.buffer();
-                buffer.appendInt(actRequest.apid);
+
                 String para = routingContext.request().getFormAttribute("parameter");
+                Buffer buffer = Buffer.buffer(8+para.length());
+                buffer.appendInt(actRequest.apid);
                 buffer.appendInt(para.length());
                 buffer.appendString(para);
                 HttpServerResponse response = routingContext.response();

@@ -13,7 +13,7 @@ public class FrameParser implements Handler<Buffer> {
   private int _offset;
   private int length;
   private final Handler<AsyncResult<Object>> client;
-  private ActResponse actResponse;
+  private ActResponse actResponse = new ActResponse();
   public FrameParser(Handler<AsyncResult<Object>> client) {
     this.client = client;
   }
@@ -28,9 +28,7 @@ public class FrameParser implements Handler<Buffer> {
       //offset = _offset;
       int remainingBytes = bytesRemaining();
       if (state == 0 && remainingBytes >= 4) {
-        int aid = _buffer.getInt(_offset);
-        actResponse = new ActResponse();
-        actResponse.apid = aid;
+        actResponse.apid = _buffer.getInt(_offset);
         _offset += 4;
         remainingBytes -= 4;
         state = 1;
