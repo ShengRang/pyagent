@@ -189,20 +189,20 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
             fprintf(stderr, "Read error %s\n", uv_err_name(nread));
         uv_close((uv_handle_t*) client, NULL);
     } else if (nread > 0) {
-//        printf("[p_read_cb]: client p: %p, nread: %ld\n", client, nread);
+        printf("[p_read_cb]: client p: %p, nread: %ld\n", client, nread);
         stream_context *context = (stream_context*)(client->data);
         pa_server *server = context->server;
         context->buf->write_idx += nread;
-//        printf("[p_read_cb]: add widx to %d, %d\n", context->buf->write_idx, context->buf->size);
+        printf("[p_read_cb]: add widx to %d, %d\n", context->buf->write_idx, context->buf->size);
         byte_buf_t *buf = context->buf;
         while(buf->read_idx < buf->write_idx) {
-//            printf("[p_read_cb]: in turn: ridx: %d, widx: %d, hs: %d, bs: %d, hh: %d\n", buf->read_idx, buf->write_idx, context->header_state, context->body_state, context->has_header);
+            printf("[p_read_cb]: in turn: ridx: %d, widx: %d, hs: %d, bs: %d, hh: %d\n", buf->read_idx, buf->write_idx, context->header_state, context->body_state, context->has_header);
             if(!context->has_header){
                 // read head
                 if(context->header_state == 0) {
                     if(buf->write_idx - buf->read_idx >= 2) {
                         if ((buf->buf[buf->read_idx] & 0xff) == 0xab && (buf->buf[buf->read_idx + 1] & 0xff) == 0xcd) {
-//                            printf("read act magic number success!\n");
+                            printf("read act magic number success!\n");
                             buf->read_idx += 2;
                             context->header_state++;
                         }
@@ -290,7 +290,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
                     }
                 }
                 if(context->body_state == 2) {
-//                    printf("[p_read_cb]: need to read p_len: %d\n", context->act.p_len);
+                    printf("[p_read_cb]: need to read p_len: %d\n", context->act.p_len);
                     if(buf->write_idx - buf->read_idx >= context->act.p_len) {
                         context->act.parameter = (char *) malloc(context->act.p_len + FK);                   // TODO free 0
                         strncpy(context->act.parameter, buf->buf + buf->read_idx, context->act.p_len);
@@ -300,13 +300,13 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
                         context->act.interface_len = context->_interface_len;
                         context->act.method = context->method;
                         context->act.method_len = context->method_len;
-//                        printf("method len: %d\n", context->method_len);
+                        printf("method len: %d\n", context->method_len);
                         context->act.parameter_types_string = context->pts;
                         context->act.pts_len = context->pts_len;
                         recv_act_ts_map[context->act.id] = current_ts();
-//                        printf("act Id: %d, ridx: %d, widx: %d, size: %d  args: [...]\n", context->act.id,
-//                               buf->read_idx, buf->write_idx, buf->size);
-                        // context->act.p_len, context->act.parameter);
+                        printf("act Id: %d, ridx: %d, widx: %d, size: %d  args: [...]\n", context->act.id,
+                               buf->read_idx, buf->write_idx, buf->size);
+//                         context->act.p_len, context->act.parameter);
 
                         dubbo_fetch(server->dubbo_client, dubbo_request_from_act(&context->act), &_dubbo_callback,
                                     context);

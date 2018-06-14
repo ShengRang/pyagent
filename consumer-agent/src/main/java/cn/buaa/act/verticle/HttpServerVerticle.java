@@ -119,7 +119,10 @@ public class HttpServerVerticle extends AbstractVerticle {
         Random random1= new Random(Thread.currentThread().getId());
         router.route().handler(routingContext -> {
                 actRequest.apid = random1.nextInt();
-                // System.out.println(actRequest.apid);
+                if (actRequest.apid < 0) {
+                    actRequest.apid = - actRequest.apid;
+                }
+                 System.out.println(actRequest.apid);
                 actRequest.Interface = routingContext.request().getFormAttribute("interface");
                 actRequest.Method = routingContext.request().getFormAttribute("method");
                 actRequest.ParameterTypesString = routingContext.request().getFormAttribute("parameterTypesString");
