@@ -55,7 +55,8 @@ public class HttpServerVerticle extends AbstractVerticle {
     private void writeHttpResponse(ActResponse actResponse) {
         StringTokenizer st = new StringTokenizer(actResponse.result);
         st.nextToken();
-        responseMap.get(actResponse.apid).end(String.valueOf(st.nextToken()));
+        responseMap.get(actResponse.apid).end(st.nextToken());
+        responseMap.remove(actResponse.apid);
     }
     private Future<NetSocket> createClient(NetClientOptions options, int port, String host) {
         Future<NetSocket> createClientFuture = Future.future();
@@ -122,7 +123,7 @@ public class HttpServerVerticle extends AbstractVerticle {
                 if (actRequest.apid < 0) {
                     actRequest.apid = - actRequest.apid;
                 }
-                 System.out.println(actRequest.apid);
+                 // System.out.println(actRequest.apid);
                 actRequest.Interface = routingContext.request().getFormAttribute("interface");
                 actRequest.Method = routingContext.request().getFormAttribute("method");
                 actRequest.ParameterTypesString = routingContext.request().getFormAttribute("parameterTypesString");
