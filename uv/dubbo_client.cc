@@ -163,7 +163,7 @@ void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
         if(client->buf) {
             int ri = client->buf->read_idx;
             int wi = client->buf->write_idx;
-//            printf("[d_alloc_cb]: will copy %d bytes\n", wi-ri);
+            printf("[d_alloc_cb]: will copy %d bytes\n", wi-ri);
             for(int i=ri; i<wi; i++) {
                 new_buf->buf[i-ri] = client->buf->buf[i];
                 new_buf->write_idx++;
