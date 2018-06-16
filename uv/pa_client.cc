@@ -130,6 +130,7 @@ void _pa_handle_queue(pa_client *client) {
 }
 
 uv_buf_t* _pa_encode_act_key(act_reuse_key *key) {
+    // TODO: 处理 url decode
     int total_len = 4 + key->interface_len + 4 + key->method_len + 4 + key->pts_len + 2;
     char *buffer = (char*)malloc(total_len);
     buffer[0] = 0xab; buffer[1] = 0xcd;
@@ -159,6 +160,7 @@ void _pa_key_write_cb(uv_write_t *req, int status) {
     key_write_context *ctx = (key_write_context*)req->data;
     pa_client *client = ctx->client;    client->connected = 1;
     INFO("write act header finish, set connected!!");
+    _pa_handle_queue(client);
     free(ctx->buf->base);
     free(ctx->buf);
     free(ctx);

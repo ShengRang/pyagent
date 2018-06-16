@@ -47,11 +47,10 @@ class PAServer(TCPServer):
         if magic_number != '\xab\xcd':
             return
         interface_len = yield stream.read_bytes(4)
-        # gen_log.info('get interface len: {0}'.format(repr(interface_len)))
         interface_len = bytes2int(interface_len)
-        # gen_log.info('interface len: %d', interface_len)
+        gen_log.info('interface len: %d', interface_len)
         interface = yield stream.read_bytes(interface_len)
-        # gen_log.info('get interface: [%s]', interface)
+        gen_log.info('get interface: [%s]', interface)
         method_len = yield stream.read_bytes(4)
         method_len = bytes2int(method_len)
         method = yield stream.read_bytes(method_len)
@@ -59,6 +58,8 @@ class PAServer(TCPServer):
         pts_len = bytes2int(pts_len)
         pts = yield stream.read_bytes(pts_len)
         channel_key = (interface, method, pts)
+        gen_log.info('get method: [%s]', method)
+        gen_log.info('get pts: [%s]', pts)
         if channel_key in self.dubbo_channel_map:
             dubbo_client = self.dubbo_channel_map[channel_key]
         else:
@@ -96,7 +97,7 @@ class PAServer(TCPServer):
                 request = make_request(bytes2int(Id))
                 p_len = yield stream.read_bytes(4)
                 request.parameter = yield stream.read_bytes(bytes2int(p_len))
-                # gen_log.info("get request %d %s", request.Id, request.parameter)
+                gen_log.info("get request %d %s", request.Id, request.parameter)
 
                 def callback(dubbo_response):
                     # gen_log.info("get dubbo_resp %d [%s] \nstream write act resp", dubbo_response.Id, dubbo_response.result)
@@ -120,23 +121,23 @@ class EchoServer(TCPServer):
                 break
 
 if __name__ == '__main__':
-    logging_config = dict(
-        version=1,
-        formatters={
-            'f': {'format':
-                      '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'}
-        },
-        handlers={
-            'h': {'class': 'logging.StreamHandler',
-                  'formatter': 'f',
-                  'level': logging.DEBUG}
-        },
-        loggers={
-            'tornado.general': {'handlers': ['h'],
-                                'level': logging.DEBUG}
-        }
-    )
-    logging.config.dictConfig(logging_config)
+    # logging_config = dict(
+    #     version=1,
+    #     formatters={
+    #         'f': {'format':
+    #                   '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'}
+    #     },
+    #     handlers={
+    #         'h': {'class': 'logging.StreamHandler',
+    #               'formatter': 'f',
+    #               'level': logging.DEBUG}
+    #     },
+    #     loggers={
+    #         'tornado.general': {'handlers': ['h'],
+    #                             'level': logging.DEBUG}
+    #     }
+    # )
+    # logging.config.dictConfig(logging_config)
     define("port", default=30000, help="run on the given port", type=int)
     define("weight", default=1, help="weight", type=int)
     define("etcd", default="localhost", help="etcd hostname", type=str)

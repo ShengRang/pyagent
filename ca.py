@@ -67,6 +67,7 @@ class IndexHandler(tornado.web.RequestHandler):
 
     @asynchronous
     def post(self):
+        print self.request.connection.context.address
         # parameter = self.get_argument('parameter').encode('utf-8')
         # self.write(str(java_string_hashcode(parameter)))
         # self.finish()

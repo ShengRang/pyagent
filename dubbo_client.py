@@ -81,10 +81,10 @@ class DubboConnection(object):
         resp.decode_body(data)
         cb = self._callbacks[resp.Id]
         t = time.time()
-        gen_log.info(
-            "DubboID[{0}]: {1}, {2}, {3}, {4}, {5}, {6}, {7}".format(resp.Id, self.prof[resp.Id][0], self.prof[resp.Id][1], self.prof[resp.Id][2], t,
-                                                         self.prof[resp.Id][1] - self.prof[resp.Id][0], self.prof[resp.Id][2] - self.prof[resp.Id][0],
-                                                         t - self.prof[resp.Id][0]))
+        # gen_log.info(
+        #     "DubboID[{0}]: {1}, {2}, {3}, {4}, {5}, {6}, {7}".format(resp.Id, self.prof[resp.Id][0], self.prof[resp.Id][1], self.prof[resp.Id][2], t,
+        #                                                  self.prof[resp.Id][1] - self.prof[resp.Id][0], self.prof[resp.Id][2] - self.prof[resp.Id][0],
+        #                                                  t - self.prof[resp.Id][0]))
         del self._callbacks[resp.Id]
         del self.prof[resp.Id]
         # self.io_loop.add_callback(cb, resp)         # 调用 callback
@@ -133,7 +133,7 @@ def main():
         print response.result
         print '[{1}]: time cost: {0} '.format(t1-t, i), 'fin: {0}'.format(len(fin) == 512)
 
-    for i in range(2048):
+    for i in range(1):
         r = Request()
         r.Id = random.randint(1, 2100000000)
         r.args = 'test'
