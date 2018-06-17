@@ -43,7 +43,11 @@ for e in eclient.read('/dubbomesh/com.alibaba.dubbo.performance.demo.provider.IH
     end_points.append((s[0], int(s[1]), int(e.value)))
     uv_argv.extend([s[0], s[1], e.value])
 
-for i in range(cpu_count()-1):
+print 'cpu count:', cpu_count()
+
+instance_count = 3
+
+for i in range(instance_count-1):
     pid = os.fork()
     if pid == 0:
         os.execv(options.ca_path, uv_argv)
