@@ -111,6 +111,7 @@ void _free_act_request(act_request *request) {
 }
 
 void _pa_handle_queue(pa_client *client) {
+    INFO("in handle queue");
     if(!client->connected) {
         INFO("still not connected");
         return;
@@ -160,6 +161,7 @@ struct key_write_context {
 };
 
 void _pa_key_write_cb(uv_write_t *req, int status) {
+    INFO("[pa_key_write_cb]");
     if(status) {
         ERROR("pa key write_cb error %s", uv_strerror(status));
         return;
@@ -175,6 +177,7 @@ void _pa_key_write_cb(uv_write_t *req, int status) {
 }
 
 void _pa_on_conn(uv_connect_t *conn, int status) {
+    INFO("[pa_on_conn]");
     if(status < 0) {
         ERROR("new conn error: %s", uv_strerror(status));
     } else {
@@ -184,6 +187,7 @@ void _pa_on_conn(uv_connect_t *conn, int status) {
         key_write_context *ctx = (key_write_context*)malloc(sizeof(key_write_context));
         ctx->client = client;   ctx->buf = buf;
         w_req->data = ctx;
+        INFO("[pa_on_conn]: uv_write to pa");
         int ret = uv_write(w_req, (uv_stream_t*)&client->stream, buf, 1, _pa_key_write_cb);
         if (ret) {
             ERROR("pa key write error: %s", uv_strerror(ret));
@@ -212,6 +216,7 @@ pa_client* create_pa_client(char *host, int port, act_reuse_key *key, uv_loop_t 
 }
 
 void pa_client_fetch(pa_client *client, act_request *req, pa_callback cb, h_context *context) {
+    INFO("[pa_client_fetch]: get new fetch");
     client->que.push(req);
     client->callbacks[req->id] = cb;
     client->contexts[req->id] = context;

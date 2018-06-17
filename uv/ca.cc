@@ -12,6 +12,8 @@
 #include "log.h"
 #include "act.h"
 
+#define FK 1024
+
 uv_loop_t io_loop;
 ca_server ca_s;
 
@@ -77,9 +79,9 @@ void _ca_on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
     }
     // 暂时假设每次 read 只需要 execute 一次，因为一个tcp连接上应该只有一个http连接活跃
     size_t parsed = http_parser_execute(ctx->parser, &server->settings, buf->buf + buf->read_idx, buf->write_idx - buf->read_idx);
+    buf->read_idx += parsed;
     INFO("nread: %ld, nparsed: %lu, ri: %d, wi: %d", nread, parsed, buf->read_idx, buf->write_idx);
     // INFO("%lu bytes parsed", parsed);
-    buf->read_idx += parsed;
 }
 
 uint bkdr_hash(char *s, int len, unsigned int init) {
@@ -192,7 +194,7 @@ void act_done_callback(act_response *act_resp, h_context *ctx) {
     uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t));
     uv_buf_t *buf = (uv_buf_t*)malloc(sizeof(uv_buf_t));
     w_req->data = buf;
-    buf->base = (char*)malloc(256 + content_len);
+    buf->base = (char*)malloc(256 + content_len + FK);
     strncpy(buf->base, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ", 59);
     unsigned int ret = sprintf(buf->base+59, "%d\r\n\r\n%.*s", content_len, ae-as, act_resp->result+as);
     buf->len = 59 + ret;
@@ -202,6 +204,7 @@ void act_done_callback(act_response *act_resp, h_context *ctx) {
 int _h_on_body(http_parser *parser, const char *data, size_t length) {
     // TODO handle body and send act request
     // INFO("on body, length: %lu, %.*s", length, length, data);
+    INFO("on body, length: %lu", length);
     h_context *ctx = (h_context*)parser->data;
     ca_server *server = ctx->server;
     int interface_v_start, method_v_start, pts_v_start, parameter_v_start;
@@ -240,27 +243,28 @@ int _h_on_body(http_parser *parser, const char *data, size_t length) {
     uint key_hs = act_key_hash(server, p+interface_v_start, interface_v_end-interface_v_start, p+method_v_start, method_v_end-method_v_start, p+pts_v_start, pts_v_end-pts_v_start);
     if(server->pa_client_maps[eidx].find(key_hs) == server->pa_client_maps[eidx].end()) {
         INFO("create new pa client");
-        act_reuse_key *reuse_key = (act_reuse_key*)malloc(sizeof(act_reuse_key));
-        reuse_key->interface = (char*)malloc(interface_v_end-interface_v_start);
-        reuse_key->method = (char*)malloc(method_v_end-method_v_start);
-        reuse_key->pts = (char*)malloc(pts_v_end-pts_v_start);
+        act_reuse_key *reuse_key = (act_reuse_key*)malloc(sizeof(act_reuse_key) + FK);
+        reuse_key->interface = (char*)malloc(interface_v_end-interface_v_start + FK);
+        reuse_key->method = (char*)malloc(method_v_end-method_v_start + FK);
+        reuse_key->pts = (char*)malloc(pts_v_end-pts_v_start + FK);
         reuse_key->interface_len = strn_urlcpy(reuse_key->interface, p+interface_v_start, interface_v_end - interface_v_start);
         reuse_key->method_len = strn_urlcpy(reuse_key->method, p+method_v_start, method_v_end - method_v_start);
         reuse_key->pts_len = strn_urlcpy(reuse_key->pts, p+pts_v_start, pts_v_end-pts_v_start);
         pa_client *client = create_pa_client(host, port, reuse_key, server->io_loop);
         server->pa_client_maps[eidx][key_hs] = client;
     }
-    act_request *req = (act_request*)malloc(sizeof(act_request));
+    act_request *req = (act_request*)malloc(sizeof(act_request) + FK);
     req->id = rand(); req->p_len = parameter_v_end - parameter_v_start;
-    req->parameter = (char*)malloc(req->p_len);
+    req->parameter = (char*)malloc(req->p_len + FK);
     strncpy(req->parameter, p+parameter_v_start, req->p_len);
     INFO("send new act req [%d] [%d]", req->id, req->p_len);
+//    ctx->buf->read_idx += length;
     pa_client_fetch(server->pa_client_maps[eidx][key_hs], req, &act_done_callback, ctx);
     return 0;
 }
 
 int _h_on_message_complete(http_parser *parser) {
-    // INFO("finish one http request");
+    INFO("finish one http request");
     h_context *ctx = (h_context*)parser->data;
     ctx->next_new_req = 1;
     return 0;
