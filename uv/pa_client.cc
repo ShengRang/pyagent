@@ -2,7 +2,7 @@
 #include "utils.h"
 #include "log.h"
 
-#define FK 1024
+#define FK 1
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)>(b)?(a):(b))
@@ -65,7 +65,7 @@ void _pa_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
                 client->read_state = 0;
                 buf->read_idx += client->a_resp.data_len;
                 (*client->callbacks[client->a_resp.id])(&client->a_resp, client->contexts[client->a_resp.id]);  // 考虑一下有没有内存问题，注意自行 free result
-                INFO("[pa_read] get act resp [%d] [%d]", client->a_resp.id, client->a_resp.data_len);
+//                INFO("[pa_read] get act resp [%d] [%d]", client->a_resp.id, client->a_resp.data_len);
                 client->callbacks.erase(client->callbacks.find(client->a_resp.id));
                 client->contexts.erase(client->contexts.find(client->a_resp.id));
             } else {
@@ -113,7 +113,7 @@ void _free_act_request(act_request *request) {
 }
 
 void _pa_handle_queue(pa_client *client) {
-    INFO("in handle queue");
+//    INFO("in handle queue");
     if(!client->connected) {
         INFO("still not connected");
         return;
@@ -163,7 +163,7 @@ struct key_write_context {
 };
 
 void _pa_key_write_cb(uv_write_t *req, int status) {
-    INFO("[pa_key_write_cb]");
+//    INFO("[pa_key_write_cb]");
     if(status) {
         ERROR("pa key write_cb error %s", uv_strerror(status));
         return;
@@ -172,6 +172,7 @@ void _pa_key_write_cb(uv_write_t *req, int status) {
     pa_client *client = ctx->client;    client->connected = 1;
     INFO("write act header finish, set connected!!");
     _pa_handle_queue(client);
+    INFO("free 4 p: %p %p %p %p", ctx->buf->base, ctx->buf, ctx, req);
     free(ctx->buf->base);
     free(ctx->buf);
     free(ctx);
@@ -208,7 +209,7 @@ pa_client* create_pa_client(char *host, int port, act_reuse_key *key, uv_loop_t 
     client->buf_pool = default_buf_pool;
     client->buf = NULL;
     client->connected = 0;
-    uv_tcp_init_ex(io_loop, &client->stream, AF_INET);
+    uv_tcp_init(io_loop, &client->stream);
     int fd;
     int opt_v = 1;
     uv_fileno((uv_handle_t*)&client->stream, &fd);
@@ -227,7 +228,7 @@ pa_client* create_pa_client(char *host, int port, act_reuse_key *key, uv_loop_t 
 }
 
 void pa_client_fetch(pa_client *client, act_request *req, pa_callback cb, h_context *context) {
-    INFO("[pa_client_fetch]: get new fetch");
+//    INFO("[pa_client_fetch]: get new fetch");
     client->que.push(req);
     client->callbacks[req->id] = cb;
     client->contexts[req->id] = context;

@@ -12,7 +12,7 @@
 #include "log.h"
 #include "act.h"
 
-#define FK 1024
+#define FK 1
 
 uv_loop_t io_loop;
 ca_server ca_s;
@@ -21,16 +21,16 @@ ca_server ca_s;
 h_context *create_h_context(ca_server *server, uv_tcp_t *channel) {
     // h_context *ctx = (h_context*)malloc(sizeof(h_context));
     h_context *ctx = new h_context();
-    INFO("new h_context p: %p", ctx);
+//    INFO("new h_context p: %p", ctx);
     ctx->server = server;
     ctx->stream = channel;
     ctx->parser = (http_parser*)malloc(sizeof(http_parser));
-    INFO("parser: %p", ctx->parser);
+//    INFO("parser: %p", ctx->parser);
     ctx->parser->data = ctx;
     ctx->next_new_req = 1;
     ctx->buf = NULL;
     ctx->buf_pool = default_buf_pool;
-    INFO("fine, will return ctx");
+//    INFO("fine, will return ctx");
     return ctx;
 }
 
@@ -73,14 +73,14 @@ void _ca_on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
     byte_buf_t *buf = ctx->buf;
     //INFO("nread: %ld, %.*s", nread, buf->write_idx - buf->read_idx, buf->buf + buf->read_idx);
     if (ctx->next_new_req) {
-        INFO("new req, reinit parser");
+//        INFO("new req, reinit parser");
         http_parser_init(ctx->parser, HTTP_REQUEST);
         ctx->next_new_req = 0;
     }
     // 暂时假设每次 read 只需要 execute 一次，因为一个tcp连接上应该只有一个http连接活跃
     size_t parsed = http_parser_execute(ctx->parser, &server->settings, buf->buf + buf->read_idx, buf->write_idx - buf->read_idx);
     buf->read_idx += parsed;
-    INFO("nread: %ld, nparsed: %lu, ri: %d, wi: %d", nread, parsed, buf->read_idx, buf->write_idx);
+//    INFO("nread: %ld, nparsed: %lu, ri: %d, wi: %d", nread, parsed, buf->read_idx, buf->write_idx);
     // INFO("%lu bytes parsed", parsed);
 }
 
@@ -93,6 +93,7 @@ uint bkdr_hash(char *s, int len, unsigned int init) {
 }
 
 void _ca_on_conn(uv_stream_t *stream, int status) {
+    INFO("[_ca_on_conn]");
     if( status < 0) {
         ERROR("ca new conn err: %s", uv_strerror(status));
     }
@@ -116,12 +117,12 @@ void _ca_on_conn(uv_stream_t *stream, int status) {
 }
 
 int ca_server_listen(ca_server *server, char *host, int port) {
-    uv_tcp_init_ex(server->io_loop, &server->server, AF_INET);
+    uv_tcp_init(server->io_loop, &server->server);
     int fd;
     int opt_v = 1;
     uv_fileno((uv_handle_t*)&server->server, &fd);
     setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt_v, sizeof(opt_v));
-    uv_tcp_keepalive(&server->server, 1, 60);                               // enable ca server tcp keepalive
+    uv_tcp_keepalive(&server->server, 1, 180);                               // enable ca server tcp keepalive
     struct sockaddr_in addr;
     uv_ip4_addr(host, port, &addr);
     uv_tcp_bind(&server->server, (const struct sockaddr*)&addr, 0);
@@ -168,6 +169,7 @@ void _act_done_write_cb(uv_write_t *req, int status) {
         ERROR("act done w cb %s", uv_strerror(status));
     }
     uv_buf_t *buf = (uv_buf_t*)req->data;
+//    INFO("free 3p: %p %p %p", buf->base, buf, req);
     free(buf->base);
     free(buf);
     free(req);
@@ -175,7 +177,7 @@ void _act_done_write_cb(uv_write_t *req, int status) {
 
 void act_done_callback(act_response *act_resp, h_context *ctx) {
     // INFO("act resp id: %d, resp: %.*s", act_resp->id, act_resp->data_len, act_resp->result);
-    INFO("[act_done_cb], id: %d, len: %d", act_resp->id, act_resp->data_len);
+//    INFO("[act_done_cb], id: %d, len: %d", act_resp->id, act_resp->data_len);
     int as, ae, i; as = ae = i= 0;
     while(i < act_resp->data_len) {
         if(act_resp->result[i] == '\n'){
@@ -187,24 +189,35 @@ void act_done_callback(act_response *act_resp, h_context *ctx) {
         i++;
     }
     int content_len = ae - as;
-    // INFO("ae: %d, as: %d, cl: %d", ae, as, content_len);
-    if(content_len == 0) {
-        ERROR("content_length=0 !!!");
+//     INFO("ae: %d, as: %d, cl: %d", ae, as, content_len);
+    if(content_len <= 0) {
+//        ERROR("content_length %d !!!, ae: %d, as: %d, %.*s", content_len, ae, as, act_resp->data_len, act_resp->result);
+        uv_write_t *w_req = (uv_write_t *) malloc(sizeof(uv_write_t));
+        uv_buf_t *buf = (uv_buf_t *) malloc(sizeof(uv_buf_t));
+        w_req->data = buf;
+        buf->base = (char *) malloc(256 + FK);
+        strncpy(buf->base, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ", 59);
+        unsigned int ret = sprintf(buf->base + 59, "%d\r\n\r\n%d", content_len, 0);
+//        INFO("buf: %p, base: %p, len: %lu, ret: %u", buf, buf->base, buf->len, ret);
+        buf->len = 59 + ret;
+        uv_write(w_req, (uv_stream_t *) ctx->stream, buf, 1, _act_done_write_cb);
+    } else {
+        uv_write_t *w_req = (uv_write_t *) malloc(sizeof(uv_write_t));
+        uv_buf_t *buf = (uv_buf_t *) malloc(sizeof(uv_buf_t));
+        w_req->data = buf;
+        buf->base = (char *) malloc(256 + content_len + FK);
+        strncpy(buf->base, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ", 59);
+        unsigned int ret = sprintf(buf->base + 59, "%d\r\n\r\n%.*s", content_len, ae - as, act_resp->result + as);
+//        INFO("buf: %p, base: %p, len: %lu, ret: %u", buf, buf->base, buf->len, ret);
+        buf->len = 59 + ret;
+        uv_write(w_req, (uv_stream_t *) ctx->stream, buf, 1, _act_done_write_cb);
     }
-    uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t));
-    uv_buf_t *buf = (uv_buf_t*)malloc(sizeof(uv_buf_t));
-    w_req->data = buf;
-    buf->base = (char*)malloc(256 + content_len + FK);
-    strncpy(buf->base, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ", 59);
-    unsigned int ret = sprintf(buf->base+59, "%d\r\n\r\n%.*s", content_len, ae-as, act_resp->result+as);
-    buf->len = 59 + ret;
-    uv_write(w_req, (uv_stream_t*)ctx->stream, buf, 1, _act_done_write_cb);
 }
 
 int _h_on_body(http_parser *parser, const char *data, size_t length) {
     // TODO handle body and send act request
     // INFO("on body, length: %lu, %.*s", length, length, data);
-    INFO("on body, length: %lu", length);
+//    INFO("on body, length: %lu", length);
     h_context *ctx = (h_context*)parser->data;
     ca_server *server = ctx->server;
     int interface_v_start, method_v_start, pts_v_start, parameter_v_start;
@@ -257,14 +270,14 @@ int _h_on_body(http_parser *parser, const char *data, size_t length) {
     req->id = rand(); req->p_len = parameter_v_end - parameter_v_start;
     req->parameter = (char*)malloc(req->p_len + FK);
     strncpy(req->parameter, p+parameter_v_start, req->p_len);
-    INFO("send new act req [%d] [%d]", req->id, req->p_len);
+//    INFO("send new act req [%d] [%d]", req->id, req->p_len);
 //    ctx->buf->read_idx += length;
     pa_client_fetch(server->pa_client_maps[eidx][key_hs], req, &act_done_callback, ctx);
     return 0;
 }
 
 int _h_on_message_complete(http_parser *parser) {
-    INFO("finish one http request");
+//    INFO("finish one http request");
     h_context *ctx = (h_context*)parser->data;
     ctx->next_new_req = 1;
     return 0;
