@@ -63,6 +63,7 @@ void _pa_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
                 client->read_state = 0;
                 buf->read_idx += client->a_resp.data_len;
                 (*client->callbacks[client->a_resp.id])(&client->a_resp, client->contexts[client->a_resp.id]);  // 考虑一下有没有内存问题，注意自行 free result
+                INFO("[pa_read] get act resp [%d] [%d]", client->a_resp.id, client->a_resp.data_len);
                 client->callbacks.erase(client->callbacks.find(client->a_resp.id));
                 client->contexts.erase(client->contexts.find(client->a_resp.id));
             } else {
