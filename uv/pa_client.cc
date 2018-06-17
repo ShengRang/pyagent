@@ -208,9 +208,18 @@ pa_client* create_pa_client(char *host, int port, act_reuse_key *key, uv_loop_t 
     client->buf_pool = default_buf_pool;
     client->buf = NULL;
     client->connected = 0;
-    uv_tcp_init(io_loop, &client->stream);
+    uv_tcp_init_ex(io_loop, &client->stream, AF_INET);
+    int fd;
+    int opt_v = 1;
+    uv_fileno((uv_handle_t*)&client->stream, &fd);
+#ifdef __linux__
+    INFO("set pa_client socket TCP_CORK");
+    setsockopt(fd, IPPROTO_TCP, TCP_CORK, &opt_v, sizeof(opt_v));
+#elif defined(__APPLE__)
+    setsockopt(fd, IPPROTO_TCP, TCP_NOPUSH, &opt_v, sizeof(opt_v));
+#endif
     uv_tcp_keepalive(&client->stream, 1, 120);
-    uv_tcp_nodelay(&client->stream, 1);
+//    uv_tcp_nodelay(&client->stream, 1);
     struct sockaddr_in dest;
     uv_ip4_addr(host, port, &dest);
     uv_tcp_connect(&client->conn, &client->stream, (struct sockaddr*)&dest, _pa_on_conn);

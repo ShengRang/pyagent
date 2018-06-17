@@ -45,11 +45,11 @@ for e in eclient.read('/dubbomesh/com.alibaba.dubbo.performance.demo.provider.IH
 
 print 'cpu count:', cpu_count()
 
-instance_count = 2
-
-for i in range(instance_count-1):
-    pid = os.fork()
-    if pid == 0:
-        os.execv(options.ca_path, uv_argv)
+# instance_count = 2
+#
+# for i in range(instance_count-1):
+#     pid = os.fork()
+#     if pid == 0:
+#         os.execv(options.ca_path, uv_argv)
 
 os.execv(options.ca_path, uv_argv)
