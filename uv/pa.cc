@@ -18,9 +18,9 @@
 uv_loop_t io_loop;
 pa_server server;
 
-std::map<int, long long> recv_act_ts_map;
+//std::map<int, long long> recv_act_ts_map;
 
-long long current_ts() {
+long long _disable_current_ts() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000000LL + tv.tv_usec;
@@ -54,7 +54,8 @@ void _p_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
         if(context->buf) {
             int ri = context->buf->read_idx;
             int wi = context->buf->write_idx;
-            printf("[pa_alloc_cb]: will copy %d bytes\n", wi-ri);
+            if(wi - ri > 0)
+                printf("[pa_alloc_cb]: will copy %d bytes\n", wi-ri);
             for(int i=ri; i<wi; i++) {
                 new_buf->buf[i-ri] = context->buf->buf[i];
                 new_buf->write_idx++;
@@ -88,8 +89,8 @@ typedef struct act_write_context{
 
 void act_write_cb(uv_write_t* req, int status) {
     act_write_context *ctx = (act_write_context*)req->data;
-    ctx->finish_act_write_ts = current_ts();
-    printf("[time_info]: %d %lld %lld %lld\n", ctx->id, ctx->read_act_ts, ctx->start_act_write_ts, ctx->finish_act_write_ts);
+//    ctx->finish_act_write_ts = current_ts();
+    // printf("[time_info]: %d %lld %lld %lld\n", ctx->id, ctx->read_act_ts, ctx->start_act_write_ts, ctx->finish_act_write_ts);
     uv_buf_t *buf = ctx->buf;
 //    uv_buf_t *buf = (uv_buf_t*)req->data;
 //    printf("[act_write_cb]: free buf->base: %p\n", buf->base);
@@ -148,8 +149,8 @@ void _dubbo_callback(dubbo_response *resp, stream_context *context) {
     act_write_context *actx = (act_write_context*)malloc(sizeof(act_write_context) + FK);
     actx->buf = buf;
     actx->id = resp->id;
-    actx->start_act_write_ts = current_ts();
-    actx->read_act_ts = recv_act_ts_map[resp->id];
+    // actx->start_act_write_ts = current_ts();
+    // actx->read_act_ts = recv_act_ts_map[resp->id];
     w_req->data = actx;
 
     int ret = uv_write(w_req, (uv_stream_t*)context->channel, buf, 1, act_write_cb);
@@ -189,7 +190,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
         fprintf(stderr, "[pa_on_read]: %d, Read error %s\n", nread, uv_err_name(nread));
         uv_close((uv_handle_t*) client, NULL);
     } else if (nread > 0) {
-        printf("[p_read_cb]: client p: %p, nread: %ld\n", client, nread);
+        // printf("[p_read_cb]: client p: %p, nread: %ld\n", client, nread);
         stream_context *context = (stream_context*)(client->data);
         pa_server *server = context->server;
         context->buf->write_idx += nread;
@@ -303,7 +304,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
 //                        printf("method len: %d\n", context->method_len);
                         context->act.parameter_types_string = context->pts;
                         context->act.pts_len = context->pts_len;
-                        recv_act_ts_map[context->act.id] = current_ts();
+                        // recv_act_ts_map[context->act.id] = current_ts();
 //                        printf("act Id: %d, ridx: %d, widx: %d, size: %d  args: [...]\n", context->act.id,
 //                               buf->read_idx, buf->write_idx, buf->size);
 //                         context->act.p_len, context->act.parameter);
@@ -350,6 +351,13 @@ int main(int argc, char *argv[]) {
     uv_loop_init(&io_loop);
     pa_server_init(&server, &io_loop);
     uv_tcp_init(&io_loop, &server.socket);
+//    uv_tcp_init_ex(&io_loop, &server.socket, AF_INET);
+
+//    int fd;
+//    int opt_v = 1;
+//    uv_fileno((uv_handle_t*)&server->socket, &fd);
+//    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt_v, sizeof(opt_v));
+
     struct sockaddr_in addr;
 
     uv_ip4_addr("0.0.0.0", 30000, &addr);
