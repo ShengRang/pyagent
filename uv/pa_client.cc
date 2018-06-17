@@ -2,6 +2,8 @@
 #include "utils.h"
 #include "log.h"
 
+#define FK 0
+
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
@@ -58,7 +60,7 @@ void _pa_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
         }
         if(client->read_state == 2) {
             if(buf->write_idx - buf->read_idx >= client->a_resp.data_len) {
-                client->a_resp.result = (char*)malloc(client->a_resp.data_len);
+                client->a_resp.result = (char*)malloc(client->a_resp.data_len + FK);
                 strncpy(client->a_resp.result, buf->buf + buf->read_idx, client->a_resp.data_len);
                 client->read_state = 0;
                 buf->read_idx += client->a_resp.data_len;
@@ -78,7 +80,7 @@ uv_buf_t _pa_act_request_encode(act_request *request) {
     // TODO 可以用指针优化内存
     int total_len = 4 + 4 + request->p_len;
     uv_buf_t res;
-    char *buffer = (char*)malloc(total_len);
+    char *buffer = (char*)malloc(total_len + FK);
     write_int(buffer, request->id);
     write_int(buffer+4, request->p_len);
     strncpy(buffer+8, request->parameter, request->p_len);
@@ -116,7 +118,7 @@ void _pa_handle_queue(pa_client *client) {
         INFO("still not connected");
         return;
     }
-    uv_buf_t *bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t) * client->que.size());
+    uv_buf_t *bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t) * client->que.size() + FK);
     int bcnt = 0;
     while(!client->que.empty()) {
         act_request *request = client->que.front(); client->que.pop();
@@ -140,7 +142,7 @@ void _pa_handle_queue(pa_client *client) {
 uv_buf_t* _pa_encode_act_key(act_reuse_key *key) {
     // TODO: 处理 url decode
     int total_len = 4 + key->interface_len + 4 + key->method_len + 4 + key->pts_len + 2;
-    char *buffer = (char*)malloc(total_len);
+    char *buffer = (char*)malloc(total_len + FK);
     buffer[0] = 0xab; buffer[1] = 0xcd;
     int pos = 2;
     write_int(buffer+pos, key->interface_len);  pos += 4;
