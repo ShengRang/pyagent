@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <map>
 #include <uv.h>
+#include <unistd.h>
 
 #include "bytebuf.h"
 #include "utils.h"
@@ -267,11 +268,14 @@ void ca_server_init(ca_server *server, uv_loop_t *loop, str_hash_func func) {
 
 
 int main(int argc, char *argv[]) {
+#ifndef NDEBUG
     DEBUG_ENABLED = 1;
     DEBUG_TIMESTAMP = 1;
     DEBUG_PROGRESS = 1;
     DEBUG_PID = 1;
+#endif
     uv_loop_init(&io_loop);
+    srand((time(0) << 4) | getpid());
     ca_server_init(&ca_s, &io_loop, bkdr_hash);
 
     INFO("argc: %d", argc);
