@@ -119,6 +119,7 @@ int ca_server_listen(ca_server *server, char *host, int port) {
     int opt_v = 1;
     uv_fileno((uv_handle_t*)&server->server, &fd);
     setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt_v, sizeof(opt_v));
+    uv_tcp_keepalive(&server->server, 1, 60);                               // enable ca server tcp keepalive
     struct sockaddr_in addr;
     uv_ip4_addr(host, port, &addr);
     uv_tcp_bind(&server->server, (const struct sockaddr*)&addr, 0);

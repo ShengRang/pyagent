@@ -185,8 +185,8 @@ dubbo_request* dubbo_request_from_act(act_request *act){
 
 void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
     if (nread < 0) {
-        if (nread != UV_EOF)
-            fprintf(stderr, "Read error %s\n", uv_err_name(nread));
+        // if (nread != UV_EOF)
+        fprintf(stderr, "[pa_on_read]: %d, Read error %s\n", nread, uv_err_name(nread));
         uv_close((uv_handle_t*) client, NULL);
     } else if (nread > 0) {
         printf("[p_read_cb]: client p: %p, nread: %ld\n", client, nread);

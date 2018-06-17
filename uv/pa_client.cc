@@ -203,6 +203,8 @@ pa_client* create_pa_client(char *host, int port, act_reuse_key *key, uv_loop_t 
     client->buf = NULL;
     client->connected = 0;
     uv_tcp_init(io_loop, &client->stream);
+    uv_tcp_keepalive(&client->stream, 1, 120);
+    uv_tcp_nodelay(&client->stream, 1);
     struct sockaddr_in dest;
     uv_ip4_addr(host, port, &dest);
     uv_tcp_connect(&client->conn, &client->stream, (struct sockaddr*)&dest, _pa_on_conn);
