@@ -17,14 +17,18 @@ ca_server ca_s;
 
 
 h_context *create_h_context(ca_server *server, uv_tcp_t *channel) {
-    h_context *ctx = (h_context*)malloc(sizeof(h_context));
+    // h_context *ctx = (h_context*)malloc(sizeof(h_context));
+    h_context *ctx = new h_context();
+    INFO("new h_context p: %p", ctx);
     ctx->server = server;
     ctx->stream = channel;
     ctx->parser = (http_parser*)malloc(sizeof(http_parser));
+    INFO("parser: %p", ctx->parser);
     ctx->parser->data = ctx;
     ctx->next_new_req = 1;
     ctx->buf = NULL;
     ctx->buf_pool = default_buf_pool;
+    INFO("fine, will return ctx");
     return ctx;
 }
 
@@ -90,16 +94,23 @@ void _ca_on_conn(uv_stream_t *stream, int status) {
     if( status < 0) {
         ERROR("ca new conn err: %s", uv_strerror(status));
     }
+    INFO("welcome socket get new conn!");
     uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
     ca_server *server = (ca_server*)stream->data;
-    client->data = create_h_context(server, client);
+    INFO("malloc new uv_tcp_t %p, server p: %p, loop p: %p", client, server, server->io_loop);
     uv_tcp_init(server->io_loop, client);
+    h_context *ctx = create_h_context(server, client);
+    INFO("get ctx: %p", ctx);
+    client->data = ctx;
+    INFO("malloc new h context %p", client->data);
     if(uv_accept(stream, (uv_stream_t*) client) == 0) {
         INFO("create new conn");
         uv_read_start((uv_stream_t*)client, _ca_alloc_cb, _ca_on_read);
     }
-    else
+    else {
+        ERROR("accept fail");
         uv_close((uv_handle_t*)client, NULL);
+    }
 }
 
 int ca_server_listen(ca_server *server, char *host, int port) {

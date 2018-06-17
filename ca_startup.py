@@ -47,9 +47,9 @@ print 'cpu count:', cpu_count()
 
 instance_count = 3
 
-for i in range(instance_count-1):
-    pid = os.fork()
-    if pid == 0:
-        os.execv(options.ca_path, uv_argv)
+# for i in range(instance_count-1):
+#     pid = os.fork()
+#     if pid == 0:
+#         os.execv(options.ca_path, uv_argv)
 
 os.execv(options.ca_path, uv_argv)

@@ -105,6 +105,11 @@ void _pa_write_cb(uv_write_t *req, int status) {
     free(req);
 }
 
+void _free_act_request(act_request *request) {
+    free(request->parameter);
+    free(request);
+}
+
 void _pa_handle_queue(pa_client *client) {
     if(!client->connected) {
         INFO("still not connected");
@@ -115,6 +120,7 @@ void _pa_handle_queue(pa_client *client) {
     while(!client->que.empty()) {
         act_request *request = client->que.front(); client->que.pop();
         bufs[bcnt++] = _pa_act_request_encode(request);
+        _free_act_request(request);
     }
     if(bcnt <= 0) {
         free(bufs);

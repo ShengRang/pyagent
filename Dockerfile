@@ -70,7 +70,7 @@ RUN set -ex \
 
 WORKDIR /root/dists/uv
 RUN clang++ -fpermissive -O3 pa.cc utils.cc dubbo_client.cc bytebuf.cc -luv -o /root/dists/pa.out
-RUN clang++ -O3 ca.cc log.cc utils.cc pa_client.cc bytebuf.cc http-parser/http_parser.c  -luv -o /root/dists/ca.out -DNDEBUG
+RUN clang++ -O3 ca.cc log.cc utils.cc pa_client.cc bytebuf.cc http-parser/http_parser.c  -luv -o /root/dists/ca.out
 
 EXPOSE 8087
 

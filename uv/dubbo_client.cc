@@ -116,7 +116,7 @@ void free_dubbo_request(dubbo_request *request) {
 //    free(request->interface_name);
 //    free(request->method_name);
 //    free(request->parameter_types_string);
-    free(request->args);
+    free(request->args);                              // 由于从 act_request 直接复制的指针，所以只需要在 act request 里 free 一次 ??
     free(request);
 //    printf("finish free\n");
 }
@@ -130,8 +130,8 @@ void handle_queue(dubbo_client *client) {
     int bcnt = 0;
     while(!client->queue.empty()) {
         dubbo_request *dreq = client->queue.front(); client->queue.pop();
-        bufs[bcnt++] = dubbo_request_encode(dreq);                              // TODO: 回收内存
-        // free_dubbo_request(dreq);
+        bufs[bcnt++] = dubbo_request_encode(dreq);                              // TODO: 回收内
+        free_dubbo_request(dreq);
     }
     if(bcnt <= 0) {
 //        printf("bcnt <= 0, break\n");
