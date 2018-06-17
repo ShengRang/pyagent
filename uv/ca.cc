@@ -12,7 +12,7 @@
 #include "log.h"
 #include "act.h"
 
-#define FK 0
+#define FK 1024
 
 uv_loop_t io_loop;
 ca_server ca_s;
