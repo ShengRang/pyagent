@@ -117,7 +117,7 @@ void _ca_on_conn(uv_stream_t *stream, int status) {
 }
 
 int ca_server_listen(ca_server *server, char *host, int port) {
-    uv_tcp_init(server->io_loop, &server->server);
+    uv_tcp_init_ex(server->io_loop, &server->server, AF_INET);
     int fd;
     int opt_v = 1;
     uv_fileno((uv_handle_t*)&server->server, &fd);
@@ -315,6 +315,7 @@ int main(int argc, char *argv[]) {
     }
     ca_s.lb.init_rate();
     ca_server_listen(&ca_s, "0.0.0.0", 20000);
+    INFO("run server");
     uv_run(&io_loop, UV_RUN_DEFAULT);
 }
 

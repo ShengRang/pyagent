@@ -1,11 +1,13 @@
 # coding: utf-8
 
 import os
+import errno
 
 import tornado.options
 from tornado.options import define, options
 import etcd
 from tornado.log import gen_log
+from tornado.util import errno_from_exception
 
 define("port", default=20000, help="run on the given port", type=int)
 define("etcd", default="localhost", help="etcd hostname", type=str)
@@ -46,11 +48,23 @@ for e in eclient.read('/dubbomesh/com.alibaba.dubbo.performance.demo.provider.IH
 print 'cpu count:', cpu_count()
 
 instance_count = 3
-print 'start up {0} instances', instance_count
+print 'start up {0} instances'.format(instance_count)
 
-for i in range(instance_count-1):
+children = {}
+
+for i in range(instance_count):
     pid = os.fork()
     if pid == 0:
         os.execv(options.ca_path, uv_argv)
+    else:
+        children[pid] = i
 
-os.execv(options.ca_path, uv_argv)
+while children:
+    try:
+        pid, status = os.wait()
+    except OSError as e:
+        if errno_from_exception(e) == errno.EINTR:
+            continue
+        raise
+    gen_log.warning("pid: {0} finish, status: {1}".format(pid, status))
+    children.pop(pid)
