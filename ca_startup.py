@@ -47,7 +47,7 @@ for e in eclient.read('/dubbomesh/com.alibaba.dubbo.performance.demo.provider.IH
 
 print 'cpu count:', cpu_count()
 
-instance_count = 1
+instance_count = 2
 print 'start up {0} instances'.format(instance_count)
 
 children = {}
