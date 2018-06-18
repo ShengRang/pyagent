@@ -77,6 +77,9 @@ void x_free(void *ptr) {
     if(it != default_x_mem_pool.ptr_size_map.end()) {
         std::size_t size = it->second;
         default_x_mem_pool.ptr_pool.insert(std::make_pair(size, ptr));
+    } else {
+        ERROR("no such ptr");
+        free(ptr);
     }
     return;
 }
