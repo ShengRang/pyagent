@@ -60,7 +60,7 @@ void *x_malloc(std::size_t size) {
     void *res;
     std::multimap<std::size_t, void*>::iterator it;
     it = default_x_mem_pool.ptr_pool.lower_bound(size);
-    if(it != default_x_mem_pool.ptr_pool.end() && (it->first <= 1.5*size || it->first <= 66)) {
+    if(it != default_x_mem_pool.ptr_pool.end() && (it->first <= 2*size || it->first <= 66)) {
         INFO("malloc %lu, give %lu, pool_size: %lu", size, (*it).first, default_x_mem_pool.ptr_pool.size());
         res = (*it).second;
         default_x_mem_pool.ptr_pool.erase(it);

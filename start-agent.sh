@@ -14,16 +14,16 @@ if [[ "$1" == "consumer" ]]; then
 elif [[ "$1" == "provider-small" ]]; then
   echo "Starting small provider agent..."
   # pypy /root/dists/pa.py --port=30000 --etcd=etcd --weight=14 > /root/logs/pa.log 2>&1
-  pypy /root/dists/pa_register.py  --port=30000 --etcd=etcd --weight=15
+  pypy /root/dists/pa_register.py  --port=30000 --etcd=etcd --weight=14
   /root/dists/pa.out > /root/logs/pas.log 2>&1
 elif [[ "$1" == "provider-medium" ]]; then
   echo "Starting medium provider agent..."
-  pypy /root/dists/pa_register.py  --port=30000 --etcd=etcd --weight=24
+  pypy /root/dists/pa_register.py  --port=30000 --etcd=etcd --weight=25
   /root/dists/pa.out > /root/logs/pam.log 2>&1
   # pypy /root/dists/pa.py --port=30000 --etcd=etcd --weight=25 > /root/logs/pa.log 2>&1
 elif [[ "$1" == "provider-large" ]]; then
   echo "Starting large provider agent..."
-  pypy /root/dists/pa_register.py  --port=30000 --etcd=etcd --weight=24
+  pypy /root/dists/pa_register.py  --port=30000 --etcd=etcd --weight=25
   /root/dists/pa.out > /root/logs/pal.log 2>&1
   # pypy /root/dists/pa.py --port=30000 --etcd=etcd --weight=25 > /root/logs/pa.log 2>&1
 else
