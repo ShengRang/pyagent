@@ -3,6 +3,7 @@
 
 #include <queue>
 #include <vector>
+#include <map>
 
 typedef struct byte_buf_t{
     int read_idx;
@@ -30,5 +31,17 @@ void pool_free(buf_pool_t *pool, byte_buf_t* buf);
 void destroy_pool(buf_pool_t *pool);
 
 extern buf_pool_t default_buf_pool;
+
+// wrap malloc 的内存池
+
+struct x_mem_pool {
+    std::multimap<size_t, void*> ptr_pool;
+    std::map<void*, size_t> ptr_size_map;
+};
+
+extern x_mem_pool default_x_mem_pool;
+
+void *x_malloc(size_t size);
+void x_free(void *ptr);
 
 #endif

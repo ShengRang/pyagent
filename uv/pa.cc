@@ -6,6 +6,7 @@
 #include <map>
 
 #include "dubbo_client.h"
+#include "log.h"
 #include "bytebuf.h"
 #include "pa.h"
 #include "utils.h"
@@ -27,7 +28,7 @@ long long _disable_current_ts() {
 }
 
 stream_context *create_pa_context(pa_server *server, uv_tcp_t *channel) {
-    stream_context *res = (stream_context*)malloc(sizeof(stream_context) + FK);
+    stream_context *res = (stream_context*)x_malloc(sizeof(stream_context) + FK);
     res->server = server;
     res->header_state = res->body_state = res->has_header = 0;
     res->buf = NULL;
@@ -70,7 +71,7 @@ void _p_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
 }
 
 act_response* act_response_from_dubbo(dubbo_response *dubbo_resp){
-    act_response *res = (act_response*)malloc(sizeof(act_response) + FK);        // TODO free
+    act_response *res = (act_response*)x_malloc(sizeof(act_response) + FK);        // TODO free
     res->id = dubbo_resp->id;
     res->data_len = dubbo_resp->data_len;
     res->result = dubbo_resp->result;
@@ -95,16 +96,16 @@ void act_write_cb(uv_write_t* req, int status) {
 //    uv_buf_t *buf = (uv_buf_t*)req->data;
 //    printf("[act_write_cb]: free buf->base: %p\n", buf->base);
 //    printf("[act_write_cb]: free buf: %p\n", buf);
-    free(buf->base);
-    free(buf);
+    x_free(buf->base);
+    x_free(buf);
 //    printf("[act_write_cb]: status: %d\n", status); // uv_strerror(status));
     if(status) {
         printf("[act_write_cb]: status: %d[%s]_\n", status, uv_strerror(status));
 //        fprintf(stderr, "write cb error %s\n", uv_strerror(status));
     }
 //    printf("[act_write_cb]: free write req: %p\n", req);
-    free(req);
-    free(ctx);
+    x_free(req);
+    x_free(ctx);
 }
 
 int act_response_data_length(act_response *resp) {
@@ -112,7 +113,7 @@ int act_response_data_length(act_response *resp) {
 }
 
 char* encode_act_response(act_response *resp) {
-    char *res = (char*)malloc(resp->data_len + 4 + 4 + FK);          // TODO free
+    char *res = (char*)x_malloc(resp->data_len + 4 + 4 + FK);          // TODO free
     write_int(res, resp->id);
     write_int(res+4, resp->data_len);
     strncpy(res+8, resp->result, resp->data_len);
@@ -122,8 +123,8 @@ char* encode_act_response(act_response *resp) {
 void free_act_response(act_response *response) {
 //    printf("[free_act_response]: free response->result: %p\n", response->result);
 //    printf("[free_act_response]: free response: %p\n", response);
-    free(response->result);
-    free(response);
+    x_free(response->result);
+    x_free(response);
 }
 
 void free_dubbo_response(dubbo_response *response){
@@ -138,15 +139,15 @@ void _dubbo_callback(dubbo_response *resp, stream_context *context) {
 //    printf("caller p: %p, server p: %p\n", context->server, &server);
     act_response *act_resp = act_response_from_dubbo(resp);
     pa_server *server = (pa_server*)context->server;
-    uv_buf_t *buf = (uv_buf_t*)malloc(sizeof(uv_buf_t) + FK);            // TODO free
+    uv_buf_t *buf = (uv_buf_t*)x_malloc(sizeof(uv_buf_t) + FK);            // TODO free
     buf->base = encode_act_response(act_resp);
     buf->len = act_response_data_length(act_resp);
     // free_dubbo_response(resp);
     free_act_response(act_resp);
-    uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t) + FK);
+    uv_write_t *w_req = (uv_write_t*)x_malloc(sizeof(uv_write_t) + FK);
     w_req->data = buf;                                              // free the buf and buf->base
 
-    act_write_context *actx = (act_write_context*)malloc(sizeof(act_write_context) + FK);
+    act_write_context *actx = (act_write_context*)x_malloc(sizeof(act_write_context) + FK);
     actx->buf = buf;
     actx->id = resp->id;
     // actx->start_act_write_ts = current_ts();
@@ -162,7 +163,7 @@ void _dubbo_callback(dubbo_response *resp, stream_context *context) {
 }
 
 dubbo_request* dubbo_request_from_act(act_request *act){
-    dubbo_request *res = (dubbo_request*)malloc(sizeof(dubbo_request) + FK);     // TODO free 0
+    dubbo_request *res = (dubbo_request*)x_malloc(sizeof(dubbo_request) + FK);     // TODO free 0
     res->parameter_types_string = act->parameter_types_string;
     res->pts_len = act->pts_len;
 
@@ -223,7 +224,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
                 if(context->header_state == 2) {
                     // 注意并没有字符串的尾0
                     if (buf->write_idx - buf->read_idx >= context->_interface_len) {
-                        context->_interface = (char *) malloc(sizeof(char) * context->_interface_len + FK);
+                        context->_interface = (char *) x_malloc(sizeof(char) * context->_interface_len + FK);
                         strncpy(context->_interface, buf->buf + buf->read_idx, context->_interface_len);
                         buf->read_idx += context->_interface_len;
                         context->header_state++;
@@ -242,7 +243,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
                 }
                 if(context->header_state == 4) {
                     if (buf->write_idx - buf->read_idx >= context->method_len) {
-                        context->method = (char *) malloc(context->method_len + FK);                         // TODO: free method
+                        context->method = (char *) x_malloc(context->method_len + FK);                         // TODO: free method
                         strncpy(context->method, buf->buf + buf->read_idx, context->method_len);
                         buf->read_idx += context->method_len;
                         context->header_state++;
@@ -261,7 +262,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
                 }
                 if(context->header_state == 6) {
                     if (buf->write_idx - buf->read_idx >= context->pts_len) {
-                        context->pts = (char *) malloc(context->pts_len + FK);
+                        context->pts = (char *) x_malloc(context->pts_len + FK);
                         strncpy(context->pts, buf->buf + buf->read_idx, context->pts_len);
                         buf->read_idx += context->pts_len;
                         context->header_state++;
@@ -293,7 +294,7 @@ void on_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *uv_buf) {
                 if(context->body_state == 2) {
 //                    printf("[p_read_cb]: need to read p_len: %d\n", context->act.p_len);
                     if(buf->write_idx - buf->read_idx >= context->act.p_len) {
-                        context->act.parameter = (char *) malloc(context->act.p_len + FK);                   // TODO free 0
+                        context->act.parameter = (char *) x_malloc(context->act.p_len + FK);                   // TODO free 0
                         strncpy(context->act.parameter, buf->buf + buf->read_idx, context->act.p_len);
                         buf->read_idx += context->act.p_len;
                         context->body_state = 0;
@@ -326,7 +327,7 @@ void on_conn(uv_stream_t *server, int status){
     if(status < 0){
         printf("New conn error!");
     }
-    uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t) + FK);                 // TODO free
+    uv_tcp_t *client = (uv_tcp_t*)x_malloc(sizeof(uv_tcp_t) + FK);                 // TODO free
 //    printf("malloc client p: [%p]\n", client);
     client->data = create_pa_context((pa_server*)server->data, client);
     uv_tcp_init(&io_loop, client);
@@ -347,6 +348,12 @@ void pa_server_init(pa_server *server, uv_loop_t *ioloop){
 }
 
 int main(int argc, char *argv[]) {
+#ifndef NDEBUG
+    DEBUG_ENABLED = 1;
+    DEBUG_TIMESTAMP = 1;
+    DEBUG_PROGRESS = 1;
+    DEBUG_PID = 1;
+#endif
     printf("[main]: server p: %p\n", &server);
     uv_loop_init(&io_loop);
     pa_server_init(&server, &io_loop);

@@ -34,7 +34,7 @@ uv_buf_t dubbo_request_encode(dubbo_request *request) {
     int f_len = 69;
     int total_len = 4 + 8 + 4 + (dubbo_version_len + 1) + (interface_name_len + 1) + 5 + (parameter_types_string_len + 1)
                     + (args_len + 1) + (f_len) + 10 + (method_name_len + 1);
-    char *buffer = (char*)malloc(total_len);                        // TODO: free
+    char *buffer = (char*)x_malloc(total_len);                        // TODO: free
 //    printf("%d, %d, %d, %d, %d, %d\n", dubbo_version_len, interface_name_len, method_name_len, parameter_types_string_len, args_len, f_len);
 //    printf("[dubbo encode]: total len: %d\n", total_len);
     int pos = 0;
@@ -126,7 +126,7 @@ void handle_queue(dubbo_client *client) {
 //        printf("[handle_queue]: connection not ready\n");
         return;
     }
-    uv_buf_t *bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t)*client->queue.size() + FK);      // TODO: free bufs
+    uv_buf_t *bufs = (uv_buf_t*)x_malloc(sizeof(uv_buf_t)*client->queue.size() + FK);      // TODO: free bufs
     int bcnt = 0;
     while(!client->queue.empty()) {
         dubbo_request *dreq = client->queue.front(); client->queue.pop();
@@ -138,8 +138,8 @@ void handle_queue(dubbo_client *client) {
         free(bufs);
         return;
     }
-    uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t) + FK);
-    dubbo_encode_wcb_context* ctx = (dubbo_encode_wcb_context *)malloc(sizeof(dubbo_encode_wcb_context) + FK);
+    uv_write_t *w_req = (uv_write_t*)x_malloc(sizeof(uv_write_t) + FK);
+    dubbo_encode_wcb_context* ctx = (dubbo_encode_wcb_context *)x_malloc(sizeof(dubbo_encode_wcb_context) + FK);
     ctx->bufs = bufs; ctx->bcnt = bcnt;
     w_req->data = ctx;
     int ret = uv_write(w_req, (uv_stream_t*) &(client->socket), bufs, bcnt, dubbo_write_cb);
@@ -163,7 +163,8 @@ void _d_alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf){
         if(client->buf) {
             int ri = client->buf->read_idx;
             int wi = client->buf->write_idx;
-            printf("[d_alloc_cb]: will copy %d bytes\n", wi-ri);
+            if(wi - ri > 0)
+                printf("[d_alloc_cb]: will copy %d bytes\n", wi-ri);
             for(int i=ri; i<wi; i++) {
                 new_buf->buf[i-ri] = client->buf->buf[i];
                 new_buf->write_idx++;
@@ -226,7 +227,7 @@ void _d_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
         if(client->read_state == 3) {
 //            printf("[d_read_cb]: need data_len: %d\n", client->dubbo_resp.data_len);
             if (buf->write_idx - buf->read_idx >= client->dubbo_resp.data_len) {
-                client->dubbo_resp.result = (char *) malloc(client->dubbo_resp.data_len + FK);                       // TODO free
+                client->dubbo_resp.result = (char *) x_malloc(client->dubbo_resp.data_len + FK);                       // TODO free
                 strncpy(client->dubbo_resp.result, buf->buf + buf->read_idx, client->dubbo_resp.data_len);
 //                printf("get dubbo result: [...]\n"); //, client->dubbo_resp.result); // %s 危险.
                 buf->read_idx += client->dubbo_resp.data_len;

@@ -1,4 +1,5 @@
 #include "bytebuf.h"
+#include "log.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,3 +52,28 @@ void destroy_pool(buf_pool_t *pool) {
 }
 
 buf_pool_t default_buf_pool;
+
+x_mem_pool default_x_mem_pool;
+
+void *x_malloc(size_t size) {
+    void *res;
+    std::multimap<size_t, void*>::iterator it;
+    it = default_x_mem_pool.ptr_pool.lower_bound(size);
+    if(it != default_x_mem_pool.ptr_pool.end()) {
+        // INFO("malloc %lu, give %lu, pool_size: %lu", size, (*it).first, default_x_mem_pool.ptr_pool.size());
+        res = (*it).second;
+        default_x_mem_pool.ptr_pool.erase(it);
+    } else {
+        // INFO("miss with size %lu, pool_size: %lu", size, default_x_mem_pool.ptr_pool.size());
+        res = malloc(size);
+        default_x_mem_pool.ptr_size_map[res] = size;
+    }
+    return res;
+}
+
+void x_free(void *ptr) {
+    size_t size = default_x_mem_pool.ptr_size_map[ptr];
+    default_x_mem_pool.ptr_pool.insert(std::make_pair(size, ptr));
+    return;
+}
+

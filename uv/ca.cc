@@ -24,7 +24,7 @@ h_context *create_h_context(ca_server *server, uv_tcp_t *channel) {
 //    INFO("new h_context p: %p", ctx);
     ctx->server = server;
     ctx->stream = channel;
-    ctx->parser = (http_parser*)malloc(sizeof(http_parser));
+    ctx->parser = (http_parser*)x_malloc(sizeof(http_parser));
 //    INFO("parser: %p", ctx->parser);
     ctx->parser->data = ctx;
     ctx->next_new_req = 1;
@@ -98,14 +98,14 @@ void _ca_on_conn(uv_stream_t *stream, int status) {
         ERROR("ca new conn err: %s", uv_strerror(status));
     }
     INFO("welcome socket get new conn!");
-    uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
+    uv_tcp_t *client = (uv_tcp_t*)x_malloc(sizeof(uv_tcp_t));
     ca_server *server = (ca_server*)stream->data;
-    INFO("malloc new uv_tcp_t %p, server p: %p, loop p: %p", client, server, server->io_loop);
+    // INFO("malloc new uv_tcp_t %p, server p: %p, loop p: %p", client, server, server->io_loop);
     uv_tcp_init(server->io_loop, client);
     h_context *ctx = create_h_context(server, client);
-    INFO("get ctx: %p", ctx);
+    // INFO("get ctx: %p", ctx);
     client->data = ctx;
-    INFO("malloc new h context %p", client->data);
+    // INFO("malloc new h context %p", client->data);
     if(uv_accept(stream, (uv_stream_t*) client) == 0) {
         INFO("create new conn");
         uv_read_start((uv_stream_t*)client, _ca_alloc_cb, _ca_on_read);
@@ -170,9 +170,9 @@ void _act_done_write_cb(uv_write_t *req, int status) {
     }
     uv_buf_t *buf = (uv_buf_t*)req->data;
 //    INFO("free 3p: %p %p %p", buf->base, buf, req);
-    free(buf->base);
-    free(buf);
-    free(req);
+    x_free(buf->base);
+    x_free(buf);
+    x_free(req);
 }
 
 void act_done_callback(act_response *act_resp, h_context *ctx) {
@@ -192,20 +192,20 @@ void act_done_callback(act_response *act_resp, h_context *ctx) {
 //     INFO("ae: %d, as: %d, cl: %d", ae, as, content_len);
     if(content_len <= 0) {
 //        ERROR("content_length %d !!!, ae: %d, as: %d, %.*s", content_len, ae, as, act_resp->data_len, act_resp->result);
-        uv_write_t *w_req = (uv_write_t *) malloc(sizeof(uv_write_t));
-        uv_buf_t *buf = (uv_buf_t *) malloc(sizeof(uv_buf_t));
+        uv_write_t *w_req = (uv_write_t *) x_malloc(sizeof(uv_write_t));
+        uv_buf_t *buf = (uv_buf_t *) x_malloc(sizeof(uv_buf_t));
         w_req->data = buf;
-        buf->base = (char *) malloc(256 + FK);
+        buf->base = (char *) x_malloc(256 + FK);
         strncpy(buf->base, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ", 59);
         unsigned int ret = sprintf(buf->base + 59, "%d\r\n\r\n%d", content_len, 0);
 //        INFO("buf: %p, base: %p, len: %lu, ret: %u", buf, buf->base, buf->len, ret);
         buf->len = 59 + ret;
         uv_write(w_req, (uv_stream_t *) ctx->stream, buf, 1, _act_done_write_cb);
     } else {
-        uv_write_t *w_req = (uv_write_t *) malloc(sizeof(uv_write_t));
-        uv_buf_t *buf = (uv_buf_t *) malloc(sizeof(uv_buf_t));
+        uv_write_t *w_req = (uv_write_t *) x_malloc(sizeof(uv_write_t));
+        uv_buf_t *buf = (uv_buf_t *) x_malloc(sizeof(uv_buf_t));
         w_req->data = buf;
-        buf->base = (char *) malloc(256 + content_len + FK);
+        buf->base = (char *) x_malloc(256 + content_len + FK);
         strncpy(buf->base, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ", 59);
         unsigned int ret = sprintf(buf->base + 59, "%d\r\n\r\n%.*s", content_len, ae - as, act_resp->result + as);
 //        INFO("buf: %p, base: %p, len: %lu, ret: %u", buf, buf->base, buf->len, ret);
@@ -256,19 +256,19 @@ int _h_on_body(http_parser *parser, const char *data, size_t length) {
     uint key_hs = act_key_hash(server, p+interface_v_start, interface_v_end-interface_v_start, p+method_v_start, method_v_end-method_v_start, p+pts_v_start, pts_v_end-pts_v_start);
     if(server->pa_client_maps[eidx].find(key_hs) == server->pa_client_maps[eidx].end()) {
         INFO("create new pa client");
-        act_reuse_key *reuse_key = (act_reuse_key*)malloc(sizeof(act_reuse_key) + FK);
-        reuse_key->interface = (char*)malloc(interface_v_end-interface_v_start + FK);
-        reuse_key->method = (char*)malloc(method_v_end-method_v_start + FK);
-        reuse_key->pts = (char*)malloc(pts_v_end-pts_v_start + FK);
+        act_reuse_key *reuse_key = (act_reuse_key*)x_malloc(sizeof(act_reuse_key) + FK);
+        reuse_key->interface = (char*)x_malloc(interface_v_end-interface_v_start + FK);
+        reuse_key->method = (char*)x_malloc(method_v_end-method_v_start + FK);
+        reuse_key->pts = (char*)x_malloc(pts_v_end-pts_v_start + FK);
         reuse_key->interface_len = strn_urlcpy(reuse_key->interface, p+interface_v_start, interface_v_end - interface_v_start);
         reuse_key->method_len = strn_urlcpy(reuse_key->method, p+method_v_start, method_v_end - method_v_start);
         reuse_key->pts_len = strn_urlcpy(reuse_key->pts, p+pts_v_start, pts_v_end-pts_v_start);
         pa_client *client = create_pa_client(host, port, reuse_key, server->io_loop);
         server->pa_client_maps[eidx][key_hs] = client;
     }
-    act_request *req = (act_request*)malloc(sizeof(act_request) + FK);
+    act_request *req = (act_request*)x_malloc(sizeof(act_request) + FK);
     req->id = rand(); req->p_len = parameter_v_end - parameter_v_start;
-    req->parameter = (char*)malloc(req->p_len + FK);
+    req->parameter = (char*)x_malloc(req->p_len + FK);
     strncpy(req->parameter, p+parameter_v_start, req->p_len);
 //    INFO("send new act req [%d] [%d]", req->id, req->p_len);
 //    ctx->buf->read_idx += length;

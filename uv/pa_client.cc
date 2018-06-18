@@ -60,7 +60,7 @@ void _pa_read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *uv_buf) {
         }
         if(client->read_state == 2) {
             if(buf->write_idx - buf->read_idx >= client->a_resp.data_len) {
-                client->a_resp.result = (char*)malloc(client->a_resp.data_len + FK);
+                client->a_resp.result = (char*)x_malloc(client->a_resp.data_len + FK);
                 strncpy(client->a_resp.result, buf->buf + buf->read_idx, client->a_resp.data_len);
                 client->read_state = 0;
                 buf->read_idx += client->a_resp.data_len;
@@ -80,7 +80,7 @@ uv_buf_t _pa_act_request_encode(act_request *request) {
     // TODO 可以用指针优化内存
     int total_len = 4 + 4 + request->p_len;
     uv_buf_t res;
-    char *buffer = (char*)malloc(total_len + FK);
+    char *buffer = (char*)x_malloc(total_len + FK);
     write_int(buffer, request->id);
     write_int(buffer+4, request->p_len);
     strncpy(buffer+8, request->parameter, request->p_len);
@@ -101,15 +101,15 @@ void _pa_write_cb(uv_write_t *req, int status) {
     }
     _pa_write_context *ctx = (_pa_write_context*)req->data;
     for(int i=0; i<ctx->bcnt; i++) {
-        free(ctx->bufs[i].base);
+        x_free(ctx->bufs[i].base);
     }
-    free(ctx->bufs); free(ctx);
-    free(req);
+    x_free(ctx->bufs); x_free(ctx);
+    x_free(req);
 }
 
 void _free_act_request(act_request *request) {
-    free(request->parameter);
-    free(request);
+    x_free(request->parameter);
+    x_free(request);
 }
 
 void _pa_handle_queue(pa_client *client) {
@@ -118,7 +118,7 @@ void _pa_handle_queue(pa_client *client) {
         INFO("still not connected");
         return;
     }
-    uv_buf_t *bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t) * client->que.size() + FK);
+    uv_buf_t *bufs = (uv_buf_t*)x_malloc(sizeof(uv_buf_t) * client->que.size() + FK);
     int bcnt = 0;
     while(!client->que.empty()) {
         act_request *request = client->que.front(); client->que.pop();
@@ -126,11 +126,11 @@ void _pa_handle_queue(pa_client *client) {
         _free_act_request(request);
     }
     if(bcnt <= 0) {
-        free(bufs);
+        x_free(bufs);
         return;
     }
-    uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t));
-    _pa_write_context *ctx = (_pa_write_context*)malloc(sizeof(_pa_write_context));
+    uv_write_t *w_req = (uv_write_t*)x_malloc(sizeof(uv_write_t));
+    _pa_write_context *ctx = (_pa_write_context*)x_malloc(sizeof(_pa_write_context));
     ctx->bcnt = bcnt; ctx->bufs = bufs;
     w_req->data = ctx;
     int ret = uv_write(w_req, (uv_stream_t*) &client->stream, bufs, bcnt, _pa_write_cb);
@@ -142,7 +142,7 @@ void _pa_handle_queue(pa_client *client) {
 uv_buf_t* _pa_encode_act_key(act_reuse_key *key) {
     // TODO: 处理 url decode
     int total_len = 4 + key->interface_len + 4 + key->method_len + 4 + key->pts_len + 2;
-    char *buffer = (char*)malloc(total_len + FK);
+    char *buffer = (char*)x_malloc(total_len + FK);
     buffer[0] = 0xab; buffer[1] = 0xcd;
     int pos = 2;
     write_int(buffer+pos, key->interface_len);  pos += 4;
@@ -151,7 +151,7 @@ uv_buf_t* _pa_encode_act_key(act_reuse_key *key) {
     strncpy(buffer+pos, key->method, key->method_len);      pos += key->method_len;
     write_int(buffer+pos, key->pts_len);    pos += 4;
     strncpy(buffer+pos, key->pts, key->pts_len);
-    uv_buf_t *res = (uv_buf_t*)malloc(sizeof(uv_buf_t));
+    uv_buf_t *res = (uv_buf_t*)x_malloc(sizeof(uv_buf_t));
     res->base = buffer;
     res->len = total_len;
     return res;
@@ -170,13 +170,13 @@ void _pa_key_write_cb(uv_write_t *req, int status) {
     }
     key_write_context *ctx = (key_write_context*)req->data;
     pa_client *client = ctx->client;    client->connected = 1;
-    INFO("write act header finish, set connected!!");
+    // INFO("write act header finish, set connected!!");
     _pa_handle_queue(client);
-    INFO("free 4 p: %p %p %p %p", ctx->buf->base, ctx->buf, ctx, req);
-    free(ctx->buf->base);
-    free(ctx->buf);
-    free(ctx);
-    free(req);
+    // INFO("free 4 p: %p %p %p %p", ctx->buf->base, ctx->buf, ctx, req);
+    x_free(ctx->buf->base);
+    x_free(ctx->buf);
+    x_free(ctx);
+    x_free(req);
 }
 
 void _pa_on_conn(uv_connect_t *conn, int status) {
@@ -186,8 +186,8 @@ void _pa_on_conn(uv_connect_t *conn, int status) {
     } else {
         pa_client *client = (pa_client*)conn->data;
         uv_buf_t *buf = _pa_encode_act_key(client->key);
-        uv_write_t *w_req = (uv_write_t*)malloc(sizeof(uv_write_t));
-        key_write_context *ctx = (key_write_context*)malloc(sizeof(key_write_context));
+        uv_write_t *w_req = (uv_write_t*)x_malloc(sizeof(uv_write_t));
+        key_write_context *ctx = (key_write_context*)x_malloc(sizeof(key_write_context));
         ctx->client = client;   ctx->buf = buf;
         w_req->data = ctx;
         INFO("[pa_on_conn]: uv_write to pa");
