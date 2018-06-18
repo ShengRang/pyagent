@@ -18,7 +18,7 @@ with open(fname) as fp:
 res.sort()
 print 'total request number:', len(res)
 print '------------'
-print 'min: {0:.6f}, max: {1:.6f}, avg: {2:.6f}'.format(res[0], res[1], sum(res)/len(res))
+print 'min: {0:.6f}, max: {1:.6f}, avg: {2:.6f}'.format(res[0], res[-1], sum(res)/len(res))
 print '------------'
 
 for r in [10, 15, 20, 30, 50, 60, 70, 80, 90, 95, 99]:

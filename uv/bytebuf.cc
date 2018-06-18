@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
 
 byte_buf_t* create_buf(unsigned int size){
     byte_buf_t* buf = (byte_buf_t*)malloc(sizeof(byte_buf_t));
@@ -55,11 +56,11 @@ buf_pool_t default_buf_pool;
 
 x_mem_pool default_x_mem_pool;
 
-void *x_malloc(long unsigned int size) {
+void *x_malloc(std::size_t size) {
     void *res;
-    std::multimap<long unsigned int, void*>::iterator it;
+    std::multimap<std::size_t, void*>::iterator it;
     it = default_x_mem_pool.ptr_pool.lower_bound(size);
-    if(it != default_x_mem_pool.ptr_pool.end()) {
+    if(it != default_x_mem_pool.ptr_pool.end() && (*it).first <= 1.5*size) {
         INFO("malloc %lu, give %lu, pool_size: %lu", size, (*it).first, default_x_mem_pool.ptr_pool.size());
         res = (*it).second;
         default_x_mem_pool.ptr_pool.erase(it);
@@ -72,8 +73,11 @@ void *x_malloc(long unsigned int size) {
 }
 
 void x_free(void *ptr) {
-    long unsigned int size = default_x_mem_pool.ptr_size_map[ptr];
-    default_x_mem_pool.ptr_pool.insert(std::make_pair(size, ptr));
+    std::map<void *, std::size_t>::iterator it = default_x_mem_pool.ptr_size_map.find(ptr);
+    if(it != default_x_mem_pool.ptr_size_map.end()) {
+        std::size_t size = it->second;
+        default_x_mem_pool.ptr_pool.insert(std::make_pair(size, ptr));
+    }
     return;
 }
 

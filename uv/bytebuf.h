@@ -4,6 +4,7 @@
 #include <queue>
 #include <vector>
 #include <map>
+#include <stddef.h>
 
 typedef struct byte_buf_t{
     int read_idx;
@@ -35,13 +36,13 @@ extern buf_pool_t default_buf_pool;
 // wrap malloc 的内存池
 
 struct x_mem_pool {
-    std::multimap<long unsigned int, void*> ptr_pool;
-    std::map<void*, long unsigned int> ptr_size_map;
+    std::multimap<std::size_t, void*> ptr_pool;
+    std::map<void*, std::size_t> ptr_size_map;
 };
 
 extern x_mem_pool default_x_mem_pool;
 
-void *x_malloc(long unsigned int size);
+void *x_malloc(std::size_t size);
 void x_free(void *ptr);
 
 #endif
