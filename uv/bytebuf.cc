@@ -60,11 +60,11 @@ void *x_malloc(long unsigned int size) {
     std::multimap<long unsigned int, void*>::iterator it;
     it = default_x_mem_pool.ptr_pool.lower_bound(size);
     if(it != default_x_mem_pool.ptr_pool.end()) {
-        // INFO("malloc %lu, give %lu, pool_size: %lu", size, (*it).first, default_x_mem_pool.ptr_pool.size());
+        INFO("malloc %lu, give %lu, pool_size: %lu", size, (*it).first, default_x_mem_pool.ptr_pool.size());
         res = (*it).second;
         default_x_mem_pool.ptr_pool.erase(it);
     } else {
-        // INFO("miss with size %lu, pool_size: %lu", size, default_x_mem_pool.ptr_pool.size());
+        INFO("miss with size %lu, pool_size: %lu", size, default_x_mem_pool.ptr_pool.size());
         res = malloc(size);
         default_x_mem_pool.ptr_size_map[res] = size;
     }
